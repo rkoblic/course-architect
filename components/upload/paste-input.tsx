@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button, Textarea } from '@/components/ui'
 import { cn } from '@/lib/utils'
 
@@ -8,15 +8,30 @@ interface PasteInputProps {
   onTextSubmit: (text: string) => void
   isLoading?: boolean
   className?: string
+  /** External value for controlled mode */
+  value?: string
+  /** Called when text changes */
+  onValueChange?: (text: string) => void
 }
 
 export function PasteInput({
   onTextSubmit,
   isLoading = false,
   className,
+  value: externalValue,
+  onValueChange,
 }: PasteInputProps) {
-  const [text, setText] = useState('')
+  const [internalText, setInternalText] = useState('')
   const [error, setError] = useState<string | null>(null)
+
+  // Use external value if provided (controlled mode)
+  const text = externalValue !== undefined ? externalValue : internalText
+  const setText = (newText: string) => {
+    if (onValueChange) {
+      onValueChange(newText)
+    }
+    setInternalText(newText)
+  }
 
   const handleSubmit = () => {
     setError(null)

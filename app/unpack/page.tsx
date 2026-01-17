@@ -22,6 +22,8 @@ import {
 export default function UnpackStep1() {
   const router = useRouter()
   const [inputMethod, setInputMethod] = useState<'file' | 'paste'>('file')
+  const [pasteText, setPasteText] = useState('')
+  const [isDemoMode, setIsDemoMode] = useState(false)
 
   const { setSyllabusText, setCourse, setCoreCompetency, syllabusText } = useCourseStore()
   const { setModules } = useModuleStore()
@@ -162,14 +164,38 @@ export default function UnpackStep1() {
     }
   }, [processContent, setExtractionProgress, setIsExtracting, setError, resetExtractionProgress])
 
-  const handleTextSubmit = useCallback(async (text: string) => {
-    const result = parseText(text)
-    await processContent(result.text)
-  }, [processContent])
+  // Switch to paste tab and load demo syllabus text
+  const loadDemoText = useCallback(() => {
+    setInputMethod('paste')
+    setPasteText(demoSyllabusText)
+    setIsDemoMode(true)
+  }, [])
 
-  const loadDemoData = useCallback(() => {
-    // Load demo data into all stores
+  // Run fake extraction animation for demo mode
+  const processDemoContent = useCallback(async () => {
+    setIsExtracting(true)
+    startSession()
     setSyllabusText(demoSyllabusText, 'demo-syllabus.txt')
+    setError(null)
+
+    // Fake extraction stages with delays
+    const stages = [
+      { stage: 'parsing', progress: 10, message: 'Document parsed successfully', delay: 400 },
+      { stage: 'metadata', progress: 25, message: 'Extracting course information...', delay: 600 },
+      { stage: 'metadata', progress: 40, message: 'Found: Introduction to Data Science (DS 101)', delay: 500 },
+      { stage: 'modules', progress: 50, message: 'Structuring learning modules...', delay: 600 },
+      { stage: 'modules', progress: 65, message: 'Identified 7 modules', delay: 400 },
+      { stage: 'knowledge-graph', progress: 75, message: 'Building concept network...', delay: 600 },
+      { stage: 'knowledge-graph', progress: 90, message: 'Mapping 18 concepts and relationships', delay: 500 },
+      { stage: 'complete', progress: 100, message: 'Analysis complete!', delay: 800 },
+    ] as const
+
+    for (const { stage, progress, message, delay } of stages) {
+      setExtractionProgress({ stage, progress, message })
+      await new Promise((resolve) => setTimeout(resolve, delay))
+    }
+
+    // Load all the demo data
     setCourse(demoCourse)
     setCoreCompetency(demoCoreCompetency)
     setModules(demoModules)
@@ -180,10 +206,15 @@ export default function UnpackStep1() {
     setLearnerProfile(demoLearnerProfile)
     setPrerequisites(demoPrerequisites)
 
-    // Mark step 1 complete and navigate to step 2
-    startSession()
+    // Mark step completed and navigate
     markStepCompleted(1)
-    router.push('/unpack/competency')
+
+    setTimeout(() => {
+      resetExtractionProgress()
+      setIsExtracting(false)
+      setIsDemoMode(false)
+      router.push('/unpack/competency')
+    }, 1000)
   }, [
     setSyllabusText,
     setCourse,
@@ -195,10 +226,24 @@ export default function UnpackStep1() {
     setAIPolicy,
     setLearnerProfile,
     setPrerequisites,
-    startSession,
+    setExtractionProgress,
+    resetExtractionProgress,
+    setIsExtracting,
+    setError,
     markStepCompleted,
+    startSession,
     router,
   ])
+
+  const handleTextSubmit = useCallback(async (text: string) => {
+    // If in demo mode, use fake extraction
+    if (isDemoMode && text === demoSyllabusText) {
+      await processDemoContent()
+      return
+    }
+    const result = parseText(text)
+    await processContent(result.text)
+  }, [processContent, isDemoMode, processDemoContent])
 
   // If already have syllabus text, show preview
   if (syllabusText && !isExtracting) {
@@ -279,17 +324,17 @@ export default function UnpackStep1() {
 
       <Card variant="bordered">
         <CardContent className="p-6">
-          <Tabs defaultValue="file" onValueChange={(v) => setInputMethod(v as 'file' | 'paste')}>
+          <Tabs defaultValue="file" value={inputMethod} onValueChange={(v) => setInputMethod(v as 'file' | 'paste')}>
             <div className="flex items-center justify-between mb-6">
               <TabsList>
                 <TabsTrigger value="file">Upload File</TabsTrigger>
                 <TabsTrigger value="paste">Paste Text</TabsTrigger>
               </TabsList>
               <button
-                onClick={loadDemoData}
-                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+                onClick={loadDemoText}
+                className="px-3 py-1.5 text-sm font-medium text-primary-600 hover:text-primary-700 hover:bg-primary-50 rounded-lg transition-colors"
               >
-                or load demo data
+                Try Demo
               </button>
             </div>
 
@@ -304,6 +349,14 @@ export default function UnpackStep1() {
               <PasteInput
                 onTextSubmit={handleTextSubmit}
                 isLoading={isExtracting}
+                value={pasteText}
+                onValueChange={(text) => {
+                  setPasteText(text)
+                  // If user edits demo text, exit demo mode
+                  if (isDemoMode && text !== demoSyllabusText) {
+                    setIsDemoMode(false)
+                  }
+                }}
               />
             </TabsContent>
           </Tabs>
