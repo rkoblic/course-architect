@@ -24,8 +24,8 @@ export default function UnpackStep6() {
   // Build the complete document
   const document: CourseArchitectDocument = useMemo(() => ({
     schema_version: '0.4',
-    created_at: new Date().toISOString(),
-    last_modified: new Date().toISOString(),
+    exported_at: new Date().toISOString(),
+    tool: 'Course Architect',
     course: {
       title: course.title || 'Untitled Course',
       code: course.code,
