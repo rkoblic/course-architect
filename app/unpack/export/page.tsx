@@ -51,12 +51,12 @@ export default function UnpackStep6() {
       concept_ids: m.concept_ids,
     })),
     knowledge_graph: {
-      nodes: nodes,
-      edges: edges,
+      nodes: Array.from(nodes.values()),
+      edges: Array.from(edges.values()),
       metadata: {
         is_dag_valid: metadata.is_dag_valid ?? true,
-        node_count: nodes.length,
-        edge_count: edges.length,
+        node_count: nodes.size,
+        edge_count: edges.size,
       },
     },
     context: {
@@ -121,13 +121,13 @@ export default function UnpackStep6() {
         </Card>
         <Card variant="bordered">
           <CardContent className="text-center py-4">
-            <div className="text-2xl font-bold text-primary-600">{nodes.length}</div>
+            <div className="text-2xl font-bold text-primary-600">{nodes.size}</div>
             <div className="text-sm text-gray-500">Concepts</div>
           </CardContent>
         </Card>
         <Card variant="bordered">
           <CardContent className="text-center py-4">
-            <div className="text-2xl font-bold text-primary-600">{edges.length}</div>
+            <div className="text-2xl font-bold text-primary-600">{edges.size}</div>
             <div className="text-sm text-gray-500">Relationships</div>
           </CardContent>
         </Card>
