@@ -1,8 +1,15 @@
 'use client'
 
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { resetAllStores } from '@/lib/reset-stores'
 
 export default function HomePage() {
+  const router = useRouter()
+
+  const handleUnpackClick = () => {
+    resetAllStores()
+    router.push('/unpack')
+  }
   return (
     <div className="min-h-screen flex flex-col">
       {/* Header */}
@@ -28,7 +35,7 @@ export default function HomePage() {
           {/* Mode Cards */}
           <div className="grid md:grid-cols-2 gap-6">
             {/* Unpack Mode */}
-            <Link href="/unpack" className="group">
+            <button onClick={handleUnpackClick} className="group text-left">
               <div className="h-full border border-gray-200 rounded-xl p-6 bg-white hover:border-primary-500 hover:shadow-md transition-all">
                 <div className="w-12 h-12 rounded-lg bg-primary-100 flex items-center justify-center mb-4">
                   <svg className="w-6 h-6 text-primary-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -47,7 +54,7 @@ export default function HomePage() {
                   <li>Define AI collaboration modes</li>
                 </ul>
               </div>
-            </Link>
+            </button>
 
             {/* Assess Mode */}
             <div className="group cursor-not-allowed">

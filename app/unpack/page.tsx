@@ -5,8 +5,19 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
 import { FileDropzone, PasteInput, ExtractionProgressDisplay } from '@/components/upload'
-import { useCourseStore, useModuleStore, useKnowledgeGraphStore, useUIStore } from '@/stores'
+import { useCourseStore, useModuleStore, useKnowledgeGraphStore, useContextStore, useUIStore } from '@/stores'
 import { parseFile, parseText } from '@/lib/parsers'
+import {
+  demoCourse,
+  demoCoreCompetency,
+  demoModules,
+  demoNodes,
+  demoEdges,
+  demoAIPolicy,
+  demoLearnerProfile,
+  demoPrerequisites,
+  demoSyllabusText,
+} from '@/lib/demo-data'
 
 export default function UnpackStep1() {
   const router = useRouter()
@@ -15,6 +26,7 @@ export default function UnpackStep1() {
   const { setSyllabusText, setCourse, setCoreCompetency, syllabusText } = useCourseStore()
   const { setModules } = useModuleStore()
   const { setNodes, setEdges, setMetadata } = useKnowledgeGraphStore()
+  const { setAIPolicy, setLearnerProfile, setPrerequisites } = useContextStore()
   const {
     setExtractionProgress,
     resetExtractionProgress,
@@ -148,6 +160,39 @@ export default function UnpackStep1() {
     const result = parseText(text)
     await processContent(result.text)
   }, [processContent])
+
+  const loadDemoData = useCallback(() => {
+    // Load demo data into all stores
+    setSyllabusText(demoSyllabusText, 'demo-syllabus.txt')
+    setCourse(demoCourse)
+    setCoreCompetency(demoCoreCompetency)
+    setModules(demoModules)
+    setNodes(demoNodes)
+    setEdges(demoEdges)
+    setMetadata({ extraction_method: 'ai_extracted', is_dag_valid: true })
+    setAIPolicy(demoAIPolicy)
+    setLearnerProfile(demoLearnerProfile)
+    setPrerequisites(demoPrerequisites)
+
+    // Mark step 1 complete and navigate to step 2
+    startSession()
+    markStepCompleted(1)
+    router.push('/unpack/competency')
+  }, [
+    setSyllabusText,
+    setCourse,
+    setCoreCompetency,
+    setModules,
+    setNodes,
+    setEdges,
+    setMetadata,
+    setAIPolicy,
+    setLearnerProfile,
+    setPrerequisites,
+    startSession,
+    markStepCompleted,
+    router,
+  ])
 
   // If already have syllabus text, show preview
   if (syllabusText && !isExtracting) {
@@ -283,6 +328,22 @@ export default function UnpackStep1() {
               You&apos;ll review and refine everything before finalizing.
             </p>
           </div>
+        </div>
+      </div>
+
+      {/* Demo Mode */}
+      <div className="border-t border-gray-200 pt-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <p className="text-sm font-medium text-gray-700">Just exploring?</p>
+            <p className="text-sm text-gray-500">Load sample data to see how the tool works.</p>
+          </div>
+          <button
+            onClick={loadDemoData}
+            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            Load Demo Data
+          </button>
         </div>
       </div>
     </div>
