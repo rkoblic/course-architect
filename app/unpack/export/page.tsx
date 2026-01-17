@@ -10,7 +10,7 @@ import {
   useContextStore,
   useUIStore,
 } from '@/stores'
-import type { Module, KnowledgeNode, KnowledgeEdge } from '@/types/schema'
+import type { Module, KnowledgeNode, KnowledgeEdge, NodeType } from '@/types/schema'
 
 // Inline SVG icons
 function ChevronDown({ className }: { className?: string }) {
@@ -87,18 +87,25 @@ function CollapsibleSection({
 }
 
 // Badge component for tags
-function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'default' | 'bloom' | 'ai' | 'type' }) {
+function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'default' | 'bloom' | 'ai' | 'type' | 'external' | 'entry' }) {
   const variants = {
     default: 'bg-gray-100 text-gray-700',
     bloom: 'bg-blue-100 text-blue-700',
     ai: 'bg-purple-100 text-purple-700',
     type: 'bg-green-100 text-green-700',
+    external: 'bg-amber-100 text-amber-700',
+    entry: 'bg-indigo-100 text-indigo-700',
   }
   return (
     <span className={`text-xs px-2 py-0.5 rounded ${variants[variant]}`}>
       {children}
     </span>
   )
+}
+
+// Helper to check if a node type is external
+function isExternalNodeType(type: NodeType): boolean {
+  return type === 'external_concept' || type === 'external_skill' || type === 'external_knowledge'
 }
 
 // Key-Value row component
@@ -170,18 +177,31 @@ function ModuleCard({ module, expanded, onToggle }: { module: Module; expanded: 
 
 // Knowledge Node display
 function NodeDisplay({ node }: { node: KnowledgeNode }) {
+  const isExternal = isExternalNodeType(node.type)
   return (
-    <div className="border border-gray-200 rounded p-2 bg-white">
-      <div className="flex items-center gap-2 mb-1">
-        <Badge variant="type">{node.type}</Badge>
+    <div className={`border rounded p-2 ${isExternal ? 'border-amber-300 bg-amber-50' : 'border-gray-200 bg-white'}`}>
+      <div className="flex items-center gap-2 mb-1 flex-wrap">
+        <Badge variant={isExternal ? 'external' : 'type'}>{node.type.replace(/_/g, ' ')}</Badge>
         <span className="font-medium text-sm">{node.label}</span>
+        {node.is_entry_point && <Badge variant="entry">entry point</Badge>}
       </div>
       {node.description && (
         <p className="text-xs text-gray-600 mb-1">{node.description}</p>
       )}
-      <div className="flex gap-2 text-xs text-gray-500">
+      <div className="flex flex-wrap gap-2 text-xs text-gray-500">
         {node.difficulty && <span>Difficulty: {node.difficulty}</span>}
         {node.bloom_level && <span>Bloom: {node.bloom_level}</span>}
+        {node.external_source && (
+          <>
+            {node.external_source.course_code && (
+              <span>From: {node.external_source.course_code}</span>
+            )}
+            {node.external_source.proficiency_level && (
+              <span>Level: {node.external_source.proficiency_level}</span>
+            )}
+            <span>{node.external_source.required ? 'Required' : 'Recommended'}</span>
+          </>
+        )}
       </div>
     </div>
   )
@@ -225,11 +245,11 @@ export default function UnpackStep6() {
 
   const { course, coreCompetency } = useCourseStore()
   const { modules } = useModuleStore()
-  const { nodes, edges, metadata } = useKnowledgeGraphStore()
+  const { nodes, edges, metadata, exportAsPrerequisites, externalNodes } = useKnowledgeGraphStore()
   const { aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites } = useContextStore()
 
-  // Check if sections have data
-  const hasPrerequisites = (prerequisites.courses?.length || prerequisites.skills?.length || prerequisites.knowledge?.length) ?? 0 > 0
+  // Check if sections have data (check both context-store and external nodes)
+  const hasPrerequisites = (prerequisites.courses?.length || prerequisites.skills?.length || prerequisites.knowledge?.length || externalNodes.size > 0) ?? false
   const hasLearnerProfile = Object.keys(learnerProfile).length > 0
   const hasTeachingApproach = Object.keys(teachingApproach).length > 0
   const hasAIPolicy = Object.keys(aiPolicy).length > 0
@@ -309,8 +329,17 @@ export default function UnpackStep6() {
       instructor_persona: Object.keys(instructorPersona).length > 0 ? instructorPersona : undefined,
       discipline_conventions: Object.keys(disciplineConventions).length > 0 ? disciplineConventions : undefined,
     },
-    prerequisites: Object.keys(prerequisites).length > 0 ? prerequisites : undefined,
-  }), [course, coreCompetency, modules, nodes, edges, metadata, aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites])
+    // Generate prerequisites from external nodes in the graph (for v0.4 backward compatibility)
+    // Falls back to context-store prerequisites if no external nodes exist
+    prerequisites: (() => {
+      const graphPrereqs = exportAsPrerequisites()
+      const hasGraphPrereqs = graphPrereqs.courses?.length || graphPrereqs.skills?.length || graphPrereqs.knowledge?.length
+      if (hasGraphPrereqs) {
+        return graphPrereqs
+      }
+      return Object.keys(prerequisites).length > 0 ? prerequisites : undefined
+    })(),
+  }), [course, coreCompetency, modules, nodes, edges, metadata, aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites, exportAsPrerequisites])
 
   const jsonString = JSON.stringify(exportDocument, null, 2)
 
@@ -456,12 +485,29 @@ export default function UnpackStep6() {
                   onToggle={() => toggleSection('knowledgeGraph')}
                 >
                   <div className="space-y-4">
+                    {/* External Nodes (Prerequisites) */}
+                    {externalNodes.size > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-amber-700 mb-2">External Prerequisites ({externalNodes.size})</h4>
+                        <p className="text-xs text-gray-500 mb-2">Knowledge assumed from outside this course</p>
+                        <div className="grid grid-cols-2 gap-2 max-h-[200px] overflow-y-auto">
+                          {Array.from(externalNodes.values()).map((node) => (
+                            <NodeDisplay key={node.id} node={node} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {/* Internal Nodes */}
                     <div>
-                      <h4 className="text-sm font-medium text-gray-700 mb-2">Nodes ({nodes.size})</h4>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">
+                        Course Concepts ({nodes.size - externalNodes.size})
+                      </h4>
                       <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
-                        {Array.from(nodes.values()).map((node) => (
-                          <NodeDisplay key={node.id} node={node} />
-                        ))}
+                        {Array.from(nodes.values())
+                          .filter((node) => !isExternalNodeType(node.type))
+                          .map((node) => (
+                            <NodeDisplay key={node.id} node={node} />
+                          ))}
                       </div>
                     </div>
                     {edges.size > 0 && (

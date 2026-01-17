@@ -239,7 +239,75 @@ export const demoModules: Module[] = [
 ]
 
 export const demoNodes: KnowledgeNode[] = [
-  // Module 1 nodes
+  // External prerequisite nodes
+  {
+    id: 'ext-concept-CS101-1',
+    type: 'external_concept',
+    label: 'Variables and data types',
+    description: 'Concept from CS 101 - Introduction to Programming',
+    source: 'faculty_defined',
+    confirmed: true,
+    external_source: {
+      type: 'course',
+      course_code: 'CS 101',
+      course_title: 'Introduction to Programming',
+      required: true,
+    },
+  },
+  {
+    id: 'ext-concept-CS101-2',
+    type: 'external_concept',
+    label: 'Control flow (loops, conditionals)',
+    description: 'Concept from CS 101 - Introduction to Programming',
+    source: 'faculty_defined',
+    confirmed: true,
+    external_source: {
+      type: 'course',
+      course_code: 'CS 101',
+      course_title: 'Introduction to Programming',
+      required: true,
+    },
+  },
+  {
+    id: 'ext-concept-CS101-3',
+    type: 'external_concept',
+    label: 'Functions',
+    description: 'Concept from CS 101 - Introduction to Programming',
+    source: 'faculty_defined',
+    confirmed: true,
+    external_source: {
+      type: 'course',
+      course_code: 'CS 101',
+      course_title: 'Introduction to Programming',
+      required: true,
+    },
+  },
+  {
+    id: 'ext-skill-1',
+    type: 'external_skill',
+    label: 'Python programming',
+    description: 'Required proficiency: basic',
+    source: 'faculty_defined',
+    confirmed: true,
+    external_source: {
+      type: 'skill',
+      proficiency_level: 'basic',
+      required: true,
+    },
+  },
+  {
+    id: 'ext-knowledge-1',
+    type: 'external_knowledge',
+    label: 'Basic algebra and functions',
+    description: 'Comfort with variables, equations, and graphing linear relationships',
+    source: 'faculty_defined',
+    confirmed: true,
+    external_source: {
+      type: 'knowledge_area',
+      required: true,
+    },
+  },
+  // Module 1 nodes (entry points)
   {
     id: 'node-demo-1',
     type: 'concept',
@@ -250,6 +318,7 @@ export const demoNodes: KnowledgeNode[] = [
     parent_module_id: 'module-demo-1',
     source: 'ai_extracted',
     confirmed: true,
+    is_entry_point: true,
   },
   {
     id: 'node-demo-2',
@@ -261,6 +330,7 @@ export const demoNodes: KnowledgeNode[] = [
     parent_module_id: 'module-demo-1',
     source: 'ai_extracted',
     confirmed: true,
+    is_entry_point: true,
   },
   {
     id: 'node-demo-3',
@@ -272,6 +342,7 @@ export const demoNodes: KnowledgeNode[] = [
     parent_module_id: 'module-demo-1',
     source: 'ai_extracted',
     confirmed: true,
+    is_entry_point: true,
   },
   // Module 2 nodes
   {
@@ -481,6 +552,57 @@ export const demoNodes: KnowledgeNode[] = [
 ]
 
 export const demoEdges: KnowledgeEdge[] = [
+  // External node to internal node edges (assumed_by relationships)
+  {
+    id: 'edge-ext-1',
+    source: 'ext-concept-CS101-1',
+    target: 'node-demo-1',
+    relationship: 'assumed_by',
+    strength: 'required',
+    rationale: 'Understanding variables and data types is assumed before learning Python data structures',
+    source_type: 'faculty_defined',
+    confirmed: true,
+  },
+  {
+    id: 'edge-ext-2',
+    source: 'ext-concept-CS101-2',
+    target: 'node-demo-1',
+    relationship: 'assumed_by',
+    strength: 'required',
+    rationale: 'Control flow knowledge is assumed before learning Python data structures',
+    source_type: 'faculty_defined',
+    confirmed: true,
+  },
+  {
+    id: 'edge-ext-3',
+    source: 'ext-concept-CS101-3',
+    target: 'node-demo-1',
+    relationship: 'assumed_by',
+    strength: 'required',
+    rationale: 'Understanding functions is assumed before learning Python data structures',
+    source_type: 'faculty_defined',
+    confirmed: true,
+  },
+  {
+    id: 'edge-ext-4',
+    source: 'ext-skill-1',
+    target: 'node-demo-1',
+    relationship: 'assumed_by',
+    strength: 'required',
+    rationale: 'Basic Python programming skill is required for this course',
+    source_type: 'faculty_defined',
+    confirmed: true,
+  },
+  {
+    id: 'edge-ext-5',
+    source: 'ext-knowledge-1',
+    target: 'node-demo-7',
+    relationship: 'assumed_by',
+    strength: 'required',
+    rationale: 'Basic algebra is needed for understanding statistical calculations',
+    source_type: 'faculty_defined',
+    confirmed: true,
+  },
   // Module 1 internal edges
   {
     id: 'edge-demo-1',

@@ -1,6 +1,15 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
-import type { KnowledgeNode, KnowledgeEdge, KnowledgeGraphMetadata, ExtractionMethod } from '@/types/schema'
+import type {
+  KnowledgeNode,
+  KnowledgeEdge,
+  KnowledgeGraphMetadata,
+  ExtractionMethod,
+  Prerequisites,
+  PrerequisiteCourse,
+  PrerequisiteSkill,
+  PrerequisiteKnowledge,
+} from '@/types/schema'
 
 interface KnowledgeGraphState {
   // Metadata
@@ -14,6 +23,9 @@ interface KnowledgeGraphState {
   nodesByModule: Map<string, string[]>
   incomingEdges: Map<string, string[]>
   outgoingEdges: Map<string, string[]>
+  // External node indexes
+  externalNodes: Map<string, KnowledgeNode>
+  entryPointNodes: Set<string>
 
   // Actions
   setMetadata: (metadata: Partial<KnowledgeGraphMetadata>) => void
@@ -42,6 +54,15 @@ interface KnowledgeGraphState {
   getIncomingEdges: (nodeId: string) => KnowledgeEdge[]
   getOutgoingEdges: (nodeId: string) => KnowledgeEdge[]
 
+  // External node helpers
+  getExternalNodes: () => KnowledgeNode[]
+  getEntryPoints: () => KnowledgeNode[]
+  addExternalNode: (node: KnowledgeNode) => void
+
+  // Migration utilities
+  migratePrerequisites: (prereqs: Prerequisites) => void
+  exportAsPrerequisites: () => Prerequisites
+
   // Bulk operations
   reset: () => void
 }
@@ -58,6 +79,13 @@ const initialState = {
   nodesByModule: new Map<string, string[]>(),
   incomingEdges: new Map<string, string[]>(),
   outgoingEdges: new Map<string, string[]>(),
+  externalNodes: new Map<string, KnowledgeNode>(),
+  entryPointNodes: new Set<string>(),
+}
+
+// Helper to check if a node type is external
+function isExternalNodeType(type: string): boolean {
+  return type === 'external_concept' || type === 'external_skill' || type === 'external_knowledge'
 }
 
 // Helper to rebuild indexes
@@ -68,16 +96,28 @@ function rebuildIndexes(
   nodesByModule: Map<string, string[]>
   incomingEdges: Map<string, string[]>
   outgoingEdges: Map<string, string[]>
+  externalNodes: Map<string, KnowledgeNode>
+  entryPointNodes: Set<string>
 } {
   const nodesByModule = new Map<string, string[]>()
   const incomingEdges = new Map<string, string[]>()
   const outgoingEdges = new Map<string, string[]>()
+  const externalNodes = new Map<string, KnowledgeNode>()
+  const entryPointNodes = new Set<string>()
 
-  // Build nodesByModule
+  // Build nodesByModule and external nodes index
   nodes.forEach((node) => {
     if (node.parent_module_id) {
       const existing = nodesByModule.get(node.parent_module_id) || []
       nodesByModule.set(node.parent_module_id, [...existing, node.id])
+    }
+    // Track external nodes
+    if (isExternalNodeType(node.type)) {
+      externalNodes.set(node.id, node)
+    }
+    // Track entry points
+    if (node.is_entry_point) {
+      entryPointNodes.add(node.id)
     }
   })
 
@@ -92,7 +132,7 @@ function rebuildIndexes(
     outgoingEdges.set(edge.source, [...outgoing, edge.id])
   })
 
-  return { nodesByModule, incomingEdges, outgoingEdges }
+  return { nodesByModule, incomingEdges, outgoingEdges, externalNodes, entryPointNodes }
 }
 
 // DAG validation using DFS
@@ -361,12 +401,276 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphState>()(
         return edgeIds.map((id) => state.edges.get(id)).filter(Boolean) as KnowledgeEdge[]
       },
 
+      // External node helpers
+      getExternalNodes: () => {
+        const state = get()
+        return Array.from(state.externalNodes.values())
+      },
+
+      getEntryPoints: () => {
+        const state = get()
+        return Array.from(state.entryPointNodes)
+          .map((id) => state.nodes.get(id))
+          .filter(Boolean) as KnowledgeNode[]
+      },
+
+      addExternalNode: (node) =>
+        set((state) => {
+          // Ensure node has an external type
+          if (!isExternalNodeType(node.type)) {
+            console.warn('addExternalNode called with non-external node type:', node.type)
+          }
+          const newNodes = new Map(state.nodes)
+          newNodes.set(node.id, node)
+          const indexes = rebuildIndexes(newNodes, state.edges)
+          return {
+            nodes: newNodes,
+            ...indexes,
+            metadata: {
+              ...state.metadata,
+              node_count: newNodes.size,
+            },
+          }
+        }),
+
+      // Migration utilities
+      migratePrerequisites: (prereqs) =>
+        set((state) => {
+          const newNodes = new Map(state.nodes)
+          const newEdges = new Map(state.edges)
+
+          // Find Module 1 entry point nodes (nodes from first module)
+          const module1Nodes = Array.from(state.nodes.values()).filter(
+            (n) => n.parent_module_id && n.parent_module_id.includes('1')
+          )
+          const firstEntryNodeId = module1Nodes.length > 0 ? module1Nodes[0].id : null
+
+          // Migrate courses to external_concept nodes
+          if (prereqs.courses) {
+            prereqs.courses.forEach((course, index) => {
+              // Create external nodes for each concept assumed from the course
+              if (course.concepts_assumed && course.concepts_assumed.length > 0) {
+                course.concepts_assumed.forEach((concept, conceptIndex) => {
+                  const nodeId = `ext-concept-${course.code.replace(/\s+/g, '-')}-${conceptIndex}-${Date.now()}`
+                  const node: KnowledgeNode = {
+                    id: nodeId,
+                    type: 'external_concept',
+                    label: concept,
+                    description: `Concept from ${course.code}${course.title ? ` - ${course.title}` : ''}`,
+                    source: 'faculty_defined',
+                    confirmed: true,
+                    external_source: {
+                      type: 'course',
+                      course_code: course.code,
+                      course_title: course.title,
+                      required: course.required,
+                    },
+                  }
+                  newNodes.set(nodeId, node)
+
+                  // Create edge to first entry node if available
+                  if (firstEntryNodeId) {
+                    const edgeId = `edge-ext-${nodeId}-${Date.now()}`
+                    newEdges.set(edgeId, {
+                      id: edgeId,
+                      source: nodeId,
+                      target: firstEntryNodeId,
+                      relationship: 'assumed_by',
+                      strength: course.required ? 'required' : 'recommended',
+                      source_type: 'faculty_defined',
+                      confirmed: true,
+                    })
+                  }
+                })
+              } else {
+                // Create a single external concept node for the course
+                const nodeId = `ext-course-${course.code.replace(/\s+/g, '-')}-${Date.now()}`
+                const node: KnowledgeNode = {
+                  id: nodeId,
+                  type: 'external_concept',
+                  label: `${course.code}${course.title ? `: ${course.title}` : ''}`,
+                  description: course.title || `Prerequisite course ${course.code}`,
+                  source: 'faculty_defined',
+                  confirmed: true,
+                  external_source: {
+                    type: 'course',
+                    course_code: course.code,
+                    course_title: course.title,
+                    required: course.required,
+                  },
+                }
+                newNodes.set(nodeId, node)
+
+                if (firstEntryNodeId) {
+                  const edgeId = `edge-ext-${nodeId}-${Date.now()}`
+                  newEdges.set(edgeId, {
+                    id: edgeId,
+                    source: nodeId,
+                    target: firstEntryNodeId,
+                    relationship: 'assumed_by',
+                    strength: course.required ? 'required' : 'recommended',
+                    source_type: 'faculty_defined',
+                    confirmed: true,
+                  })
+                }
+              }
+            })
+          }
+
+          // Migrate skills to external_skill nodes
+          if (prereqs.skills) {
+            prereqs.skills.forEach((skill, index) => {
+              const nodeId = `ext-skill-${index}-${Date.now()}`
+              const node: KnowledgeNode = {
+                id: nodeId,
+                type: 'external_skill',
+                label: skill.skill,
+                description: skill.proficiency_level
+                  ? `Required proficiency: ${skill.proficiency_level}`
+                  : undefined,
+                source: 'faculty_defined',
+                confirmed: true,
+                external_source: {
+                  type: 'skill',
+                  proficiency_level: skill.proficiency_level,
+                  required: skill.required,
+                },
+              }
+              newNodes.set(nodeId, node)
+
+              if (firstEntryNodeId) {
+                const edgeId = `edge-ext-${nodeId}-${Date.now()}`
+                newEdges.set(edgeId, {
+                  id: edgeId,
+                  source: nodeId,
+                  target: firstEntryNodeId,
+                  relationship: 'assumed_by',
+                  strength: skill.required ? 'required' : 'recommended',
+                  source_type: 'faculty_defined',
+                  confirmed: true,
+                })
+              }
+            })
+          }
+
+          // Migrate knowledge areas to external_knowledge nodes
+          if (prereqs.knowledge) {
+            prereqs.knowledge.forEach((knowledge, index) => {
+              const nodeId = `ext-knowledge-${index}-${Date.now()}`
+              const node: KnowledgeNode = {
+                id: nodeId,
+                type: 'external_knowledge',
+                label: knowledge.area,
+                description: knowledge.description,
+                source: 'faculty_defined',
+                confirmed: true,
+                external_source: {
+                  type: 'knowledge_area',
+                  required: knowledge.required,
+                },
+              }
+              newNodes.set(nodeId, node)
+
+              if (firstEntryNodeId) {
+                const edgeId = `edge-ext-${nodeId}-${Date.now()}`
+                newEdges.set(edgeId, {
+                  id: edgeId,
+                  source: nodeId,
+                  target: firstEntryNodeId,
+                  relationship: 'assumed_by',
+                  strength: knowledge.required ? 'required' : 'recommended',
+                  source_type: 'faculty_defined',
+                  confirmed: true,
+                })
+              }
+            })
+          }
+
+          // Mark first module nodes as entry points
+          if (module1Nodes.length > 0) {
+            module1Nodes.forEach((node) => {
+              newNodes.set(node.id, { ...node, is_entry_point: true })
+            })
+          }
+
+          const indexes = rebuildIndexes(newNodes, newEdges)
+          const isDagValid = checkDagValidity(newNodes, newEdges)
+
+          return {
+            nodes: newNodes,
+            edges: newEdges,
+            ...indexes,
+            metadata: {
+              ...state.metadata,
+              node_count: newNodes.size,
+              edge_count: newEdges.size,
+              is_dag_valid: isDagValid,
+            },
+          }
+        }),
+
+      exportAsPrerequisites: () => {
+        const state = get()
+        const prerequisites: Prerequisites = {
+          courses: [],
+          skills: [],
+          knowledge: [],
+        }
+
+        // Group external concept nodes by course
+        const courseMap = new Map<string, PrerequisiteCourse>()
+
+        state.externalNodes.forEach((node) => {
+          if (node.type === 'external_concept' && node.external_source?.type === 'course') {
+            const courseCode = node.external_source.course_code || 'UNKNOWN'
+            const existing = courseMap.get(courseCode)
+            if (existing) {
+              // Add concept to existing course
+              if (!existing.concepts_assumed) {
+                existing.concepts_assumed = []
+              }
+              existing.concepts_assumed.push(node.label)
+            } else {
+              // Create new course entry
+              courseMap.set(courseCode, {
+                code: courseCode,
+                title: node.external_source.course_title,
+                required: node.external_source.required,
+                concepts_assumed: [node.label],
+              })
+            }
+          } else if (node.type === 'external_skill' && node.external_source?.type === 'skill') {
+            prerequisites.skills!.push({
+              skill: node.label,
+              proficiency_level: node.external_source.proficiency_level,
+              required: node.external_source.required,
+            })
+          } else if (node.type === 'external_knowledge' && node.external_source?.type === 'knowledge_area') {
+            prerequisites.knowledge!.push({
+              area: node.label,
+              description: node.description,
+              required: node.external_source.required,
+            })
+          }
+        })
+
+        // Convert course map to array
+        prerequisites.courses = Array.from(courseMap.values())
+
+        // Clean up empty arrays
+        if (prerequisites.courses!.length === 0) delete prerequisites.courses
+        if (prerequisites.skills!.length === 0) delete prerequisites.skills
+        if (prerequisites.knowledge!.length === 0) delete prerequisites.knowledge
+
+        return prerequisites
+      },
+
       // Reset
       reset: () => set(initialState),
     }),
     {
       name: 'course-architect-knowledge-graph',
-      // Custom serialization for Maps
+      // Custom serialization for Maps and Sets
       storage: {
         getItem: (name) => {
           const str = localStorage.getItem(name)
@@ -380,6 +684,8 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphState>()(
               nodesByModule: new Map(data.state.nodesByModule || []),
               incomingEdges: new Map(data.state.incomingEdges || []),
               outgoingEdges: new Map(data.state.outgoingEdges || []),
+              externalNodes: new Map(data.state.externalNodes || []),
+              entryPointNodes: new Set(data.state.entryPointNodes || []),
             },
           }
         },
@@ -392,6 +698,8 @@ export const useKnowledgeGraphStore = create<KnowledgeGraphState>()(
               nodesByModule: Array.from(value.state.nodesByModule.entries()),
               incomingEdges: Array.from(value.state.incomingEdges.entries()),
               outgoingEdges: Array.from(value.state.outgoingEdges.entries()),
+              externalNodes: Array.from(value.state.externalNodes.entries()),
+              entryPointNodes: Array.from(value.state.entryPointNodes),
             },
           }
           localStorage.setItem(name, JSON.stringify(data))

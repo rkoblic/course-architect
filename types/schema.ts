@@ -10,7 +10,16 @@ export type BloomLevel = 'remember' | 'understand' | 'apply' | 'analyze' | 'eval
 
 export type AIPartnershipMode = 'instruct' | 'guide' | 'assist' | 'collaborate' | 'audit' | 'witness'
 
-export type NodeType = 'concept' | 'skill' | 'competency' | 'threshold_concept' | 'misconception'
+export type NodeType =
+  | 'concept'
+  | 'skill'
+  | 'competency'
+  | 'threshold_concept'
+  | 'misconception'
+  // External nodes (prerequisites from outside the course)
+  | 'external_concept'    // From prerequisite courses
+  | 'external_skill'      // Required prior skill
+  | 'external_knowledge'  // Background knowledge area
 
 export type EdgeRelationship =
   | 'prerequisite_of'
@@ -23,6 +32,9 @@ export type EdgeRelationship =
   | 'requires_skill'
   | 'develops_skill'
   | 'addresses_misconception'
+  // External node relationships
+  | 'assumed_by'       // External node is assumed by internal node
+  | 'entry_point_for'  // External node leads to this entry concept
 
 export type EdgeStrength = 'required' | 'recommended' | 'optional'
 
@@ -92,6 +104,18 @@ export type AssessmentSetting =
 export type CollaborationType = 'individual' | 'pairs' | 'small_group' | 'class_wide'
 
 export type ProficiencyLevel = 'basic' | 'intermediate' | 'advanced'
+
+// External source type for external nodes (prerequisites)
+export type ExternalSourceType = 'course' | 'skill' | 'knowledge_area'
+
+// External source information for external nodes
+export interface ExternalSource {
+  type: ExternalSourceType
+  course_code?: string      // e.g., 'MATH 101'
+  course_title?: string
+  proficiency_level?: ProficiencyLevel
+  required: boolean
+}
 
 export type ExternalFramework = 'CTDL-ASN' | 'CASE' | 'ESCO' | 'ONET' | 'custom'
 
@@ -165,6 +189,9 @@ export interface KnowledgeNode {
   common_misconceptions?: string[]
   source?: SourceType
   confirmed?: boolean
+  // Fields for external nodes (prerequisites unified with graph)
+  external_source?: ExternalSource
+  is_entry_point?: boolean  // First internal concepts students encounter
 }
 
 // Knowledge Graph Edge
@@ -480,6 +507,9 @@ export const NODE_TYPES: { value: NodeType; label: string; description: string }
   { value: 'competency', label: 'Competency', description: 'Integrated knowledge + skill + judgment' },
   { value: 'threshold_concept', label: 'Threshold Concept', description: 'Transformative, troublesome, integrative concept' },
   { value: 'misconception', label: 'Misconception', description: 'Common misunderstanding to address' },
+  { value: 'external_concept', label: 'External Concept', description: 'Concept from a prerequisite course' },
+  { value: 'external_skill', label: 'External Skill', description: 'Required prior skill from outside the course' },
+  { value: 'external_knowledge', label: 'External Knowledge', description: 'Background knowledge area assumed' },
 ]
 
 // Edge relationship types helper data
@@ -494,4 +524,6 @@ export const EDGE_RELATIONSHIPS: { value: EdgeRelationship; label: string; descr
   { value: 'requires_skill', label: 'Requires Skill', description: 'Concept needs skill' },
   { value: 'develops_skill', label: 'Develops Skill', description: 'Concept builds skill' },
   { value: 'addresses_misconception', label: 'Addresses Misconception', description: 'Concept corrects misconception' },
+  { value: 'assumed_by', label: 'Assumed By', description: 'External node is assumed by internal node' },
+  { value: 'entry_point_for', label: 'Entry Point For', description: 'External node leads to this entry concept' },
 ]
