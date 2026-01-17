@@ -44,7 +44,7 @@ export default function UnpackStep6() {
       title: m.title,
       sequence: m.sequence,
       description: m.description,
-      learning_outcome: m.learning_outcome || (m.learning_objectives?.[0] || ''),
+      learning_outcome: m.learning_outcome || '',
       bloom_level: m.bloom_level || 'understand',
       ai_partnership_mode: m.ai_partnership_mode || 'collaborate',
       topics: m.topics || [],
@@ -114,7 +114,7 @@ export default function UnpackStep6() {
         <Card variant="bordered">
           <CardContent className="text-center py-4">
             <div className="text-2xl font-bold text-primary-600">
-              {modules.reduce((acc, m) => acc + (m.learning_objectives?.length || 0), 0)}
+              {modules.filter((m) => m.learning_outcome).length}
             </div>
             <div className="text-sm text-gray-500">Objectives</div>
           </CardContent>
@@ -186,7 +186,7 @@ export default function UnpackStep6() {
                       <div key={module.id} className="bg-gray-50 rounded-lg p-3">
                         <div className="font-medium">{module.sequence}. {module.title}</div>
                         <div className="text-sm text-gray-500">
-                          {module.learning_objectives?.length || 0} objectives, {module.topics?.length || 0} topics
+                          {module.learning_outcome ? '1 outcome' : 'No outcome'}, {module.topics?.length || 0} topics
                         </div>
                       </div>
                     ))}
