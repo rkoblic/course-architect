@@ -280,10 +280,18 @@ export default function UnpackStep1() {
       <Card variant="bordered">
         <CardContent className="p-6">
           <Tabs defaultValue="file" onValueChange={(v) => setInputMethod(v as 'file' | 'paste')}>
-            <TabsList className="mb-6">
-              <TabsTrigger value="file">Upload File</TabsTrigger>
-              <TabsTrigger value="paste">Paste Text</TabsTrigger>
-            </TabsList>
+            <div className="flex items-center justify-between mb-6">
+              <TabsList>
+                <TabsTrigger value="file">Upload File</TabsTrigger>
+                <TabsTrigger value="paste">Paste Text</TabsTrigger>
+              </TabsList>
+              <button
+                onClick={loadDemoData}
+                className="text-sm text-gray-500 hover:text-gray-700 transition-colors"
+              >
+                or load demo data
+              </button>
+            </div>
 
             <TabsContent value="file">
               <FileDropzone
@@ -334,22 +342,6 @@ export default function UnpackStep1() {
               You&apos;ll review and refine everything before finalizing.
             </p>
           </div>
-        </div>
-      </div>
-
-      {/* Demo Mode */}
-      <div className="border-t border-gray-200 pt-6">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-sm font-medium text-gray-700">Just exploring?</p>
-            <p className="text-sm text-gray-500">Load sample data to see how the tool works.</p>
-          </div>
-          <button
-            onClick={loadDemoData}
-            className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            Load Demo Data
-          </button>
         </div>
       </div>
     </div>
