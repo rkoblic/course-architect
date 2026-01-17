@@ -64,7 +64,8 @@ export default function UnpackStep6() {
         course_level: aiPolicy.course_level || 'open_use',
         details: aiPolicy.details,
         rationale: aiPolicy.rationale,
-        assessment_overrides: aiPolicy.assessment_overrides,
+        skills_to_develop: aiPolicy.skills_to_develop,
+        skills_to_delegate: aiPolicy.skills_to_delegate,
       },
       learner_profile: Object.keys(learnerProfile).length > 0 ? learnerProfile : undefined,
       teaching_approach: Object.keys(teachingApproach).length > 0 ? teachingApproach : undefined,
@@ -217,7 +218,7 @@ export default function UnpackStep6() {
 
       <StepNavigation
         showNext={false}
-        prevLabel="Back to Context"
+        backLabel="Back to Context"
       />
     </div>
   )
