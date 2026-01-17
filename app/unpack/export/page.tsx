@@ -370,6 +370,63 @@ export default function UnpackStep6() {
         </p>
       </div>
 
+      {/* Use Cases Card */}
+      <Card variant="bordered">
+        <CardContent>
+          <h3 className="font-medium text-gray-900 mb-3">What can you do with this file?</h3>
+          <div className="grid md:grid-cols-2 gap-4 text-sm">
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-primary-600 mt-0.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                </span>
+                <div>
+                  <span className="font-medium">Create a Custom GPT</span>
+                  <p className="text-gray-500">Upload as a knowledge file to build an AI tutor that understands your course structure, prerequisites, and teaching style.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary-600 mt-0.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </span>
+                <div>
+                  <span className="font-medium">Power Claude Projects</span>
+                  <p className="text-gray-500">Add to a Claude Project to give the AI deep context about your curriculum when helping students or creating materials.</p>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-2">
+              <div className="flex items-start gap-2">
+                <span className="text-primary-600 mt-0.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h14a1 1 0 011 1v2a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM4 13a1 1 0 011-1h6a1 1 0 011 1v6a1 1 0 01-1 1H5a1 1 0 01-1-1v-6zM16 13a1 1 0 011-1h2a1 1 0 011 1v6a1 1 0 01-1 1h-2a1 1 0 01-1-1v-6z" />
+                  </svg>
+                </span>
+                <div>
+                  <span className="font-medium">Generate Learning Materials</span>
+                  <p className="text-gray-500">Use with any AI to create quizzes, study guides, or practice problems that align with your learning outcomes and Bloom&apos;s levels.</p>
+                </div>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-primary-600 mt-0.5">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </span>
+                <div>
+                  <span className="font-medium">Track Curriculum Evolution</span>
+                  <p className="text-gray-500">Keep versioned exports to document how your course evolves, compare iterations, or share with colleagues.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* Summary Stats */}
       <div className="grid grid-cols-4 gap-4">
         <Card variant="bordered">
