@@ -10,10 +10,213 @@ import {
   useContextStore,
   useUIStore,
 } from '@/stores'
+import type { Module, KnowledgeNode, KnowledgeEdge } from '@/types/schema'
+
+// Inline SVG icons
+function ChevronDown({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+    </svg>
+  )
+}
+
+function ChevronRight({ className }: { className?: string }) {
+  return (
+    <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+    </svg>
+  )
+}
+
+// Collapsible Section Component
+interface CollapsibleSectionProps {
+  title: string
+  badge?: string
+  defaultExpanded?: boolean
+  isEmpty?: boolean
+  expanded: boolean
+  onToggle: () => void
+  children: React.ReactNode
+}
+
+function CollapsibleSection({
+  title,
+  badge,
+  isEmpty,
+  expanded,
+  onToggle,
+  children,
+}: CollapsibleSectionProps) {
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-4 bg-gray-50 hover:bg-gray-100 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2">
+          {expanded ? (
+            <ChevronDown className="w-4 h-4 text-gray-500" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-500" />
+          )}
+          <h3 className="font-semibold text-gray-900">{title}</h3>
+          {isEmpty && (
+            <span className="text-xs text-gray-400 bg-gray-200 px-2 py-0.5 rounded">
+              Not configured
+            </span>
+          )}
+          {badge && !isEmpty && (
+            <span className="text-xs text-gray-500 bg-gray-200 px-2 py-0.5 rounded">
+              {badge}
+            </span>
+          )}
+        </div>
+      </button>
+      {expanded && (
+        <div className="p-4 border-t border-gray-200">
+          {isEmpty ? (
+            <p className="text-sm text-gray-400 italic">No data configured</p>
+          ) : (
+            children
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Badge component for tags
+function Badge({ children, variant = 'default' }: { children: React.ReactNode; variant?: 'default' | 'bloom' | 'ai' | 'type' }) {
+  const variants = {
+    default: 'bg-gray-100 text-gray-700',
+    bloom: 'bg-blue-100 text-blue-700',
+    ai: 'bg-purple-100 text-purple-700',
+    type: 'bg-green-100 text-green-700',
+  }
+  return (
+    <span className={`text-xs px-2 py-0.5 rounded ${variants[variant]}`}>
+      {children}
+    </span>
+  )
+}
+
+// Key-Value row component
+function KeyValue({ label, value }: { label: string; value: string | number | undefined | null }) {
+  return (
+    <div className="grid grid-cols-3 gap-2 text-sm py-1">
+      <span className="text-gray-500">{label}</span>
+      <span className="col-span-2">{value || <span className="text-gray-400 italic">Not set</span>}</span>
+    </div>
+  )
+}
+
+// Expandable Module Card
+function ModuleCard({ module, expanded, onToggle }: { module: Module; expanded: boolean; onToggle: () => void }) {
+  return (
+    <div className="border border-gray-200 rounded-lg overflow-hidden">
+      <button
+        onClick={onToggle}
+        className="w-full flex items-center justify-between p-3 bg-white hover:bg-gray-50 transition-colors text-left"
+      >
+        <div className="flex items-center gap-2">
+          {expanded ? (
+            <ChevronDown className="w-4 h-4 text-gray-400" />
+          ) : (
+            <ChevronRight className="w-4 h-4 text-gray-400" />
+          )}
+          <span className="font-medium">{module.sequence}. {module.title}</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {module.bloom_level && <Badge variant="bloom">{module.bloom_level}</Badge>}
+          {module.ai_partnership_mode && <Badge variant="ai">{module.ai_partnership_mode}</Badge>}
+        </div>
+      </button>
+      {expanded && (
+        <div className="p-3 border-t border-gray-200 bg-gray-50 space-y-3">
+          {module.description && (
+            <div>
+              <span className="text-xs text-gray-500 uppercase tracking-wide">Description</span>
+              <p className="text-sm mt-1">{module.description}</p>
+            </div>
+          )}
+          {module.learning_outcome && (
+            <div>
+              <span className="text-xs text-gray-500 uppercase tracking-wide">Learning Outcome</span>
+              <p className="text-sm mt-1">{module.learning_outcome}</p>
+            </div>
+          )}
+          {module.topics && module.topics.length > 0 && (
+            <div>
+              <span className="text-xs text-gray-500 uppercase tracking-wide">Topics</span>
+              <div className="flex flex-wrap gap-1 mt-1">
+                {module.topics.map((topic, i) => (
+                  <Badge key={i}>{topic}</Badge>
+                ))}
+              </div>
+            </div>
+          )}
+          {module.estimated_duration && (
+            <div>
+              <span className="text-xs text-gray-500 uppercase tracking-wide">Duration</span>
+              <p className="text-sm mt-1">{module.estimated_duration}</p>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+// Knowledge Node display
+function NodeDisplay({ node }: { node: KnowledgeNode }) {
+  return (
+    <div className="border border-gray-200 rounded p-2 bg-white">
+      <div className="flex items-center gap-2 mb-1">
+        <Badge variant="type">{node.type}</Badge>
+        <span className="font-medium text-sm">{node.label}</span>
+      </div>
+      {node.description && (
+        <p className="text-xs text-gray-600 mb-1">{node.description}</p>
+      )}
+      <div className="flex gap-2 text-xs text-gray-500">
+        {node.difficulty && <span>Difficulty: {node.difficulty}</span>}
+        {node.bloom_level && <span>Bloom: {node.bloom_level}</span>}
+      </div>
+    </div>
+  )
+}
+
+// Knowledge Edge display
+function EdgeDisplay({ edge, nodes }: { edge: KnowledgeEdge; nodes: Map<string, KnowledgeNode> }) {
+  const sourceNode = nodes.get(edge.source)
+  const targetNode = nodes.get(edge.target)
+  return (
+    <div className="text-sm py-1 flex items-center gap-2">
+      <span className="font-medium">{sourceNode?.label || edge.source}</span>
+      <span className="text-gray-400">→</span>
+      <Badge>{edge.relationship.replace(/_/g, ' ')}</Badge>
+      <span className="text-gray-400">→</span>
+      <span className="font-medium">{targetNode?.label || edge.target}</span>
+      {edge.strength && <span className="text-xs text-gray-400">({edge.strength})</span>}
+    </div>
+  )
+}
 
 export default function UnpackStep6() {
   const [copied, setCopied] = useState(false)
   const { exportViewMode, setExportViewMode, setCurrentStep } = useUIStore()
+
+  // Section expansion state
+  const [expandedSections, setExpandedSections] = useState({
+    courseOverview: true,
+    learningStructure: true,
+    knowledgeGraph: false,
+    prerequisites: false,
+    contextLearner: false,
+    contextAdvanced: false,
+  })
+  const [expandedModules, setExpandedModules] = useState<Set<string>>(new Set())
 
   // Set current step on mount
   useEffect(() => {
@@ -24,6 +227,34 @@ export default function UnpackStep6() {
   const { modules } = useModuleStore()
   const { nodes, edges, metadata } = useKnowledgeGraphStore()
   const { aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites } = useContextStore()
+
+  // Check if sections have data
+  const hasPrerequisites = (prerequisites.courses?.length || prerequisites.skills?.length || prerequisites.knowledge?.length) ?? 0 > 0
+  const hasLearnerProfile = Object.keys(learnerProfile).length > 0
+  const hasTeachingApproach = Object.keys(teachingApproach).length > 0
+  const hasAIPolicy = Object.keys(aiPolicy).length > 0
+  const hasInstructorPersona = Object.keys(instructorPersona).length > 0
+  const hasDisciplineConventions = Object.keys(disciplineConventions).length > 0
+  const hasContextLearner = hasLearnerProfile || hasTeachingApproach || hasAIPolicy
+  const hasContextAdvanced = hasInstructorPersona || hasDisciplineConventions
+
+  // Toggle section expansion
+  const toggleSection = (section: keyof typeof expandedSections) => {
+    setExpandedSections(prev => ({ ...prev, [section]: !prev[section] }))
+  }
+
+  // Toggle module expansion
+  const toggleModule = (moduleId: string) => {
+    setExpandedModules(prev => {
+      const next = new Set(prev)
+      if (next.has(moduleId)) {
+        next.delete(moduleId)
+      } else {
+        next.add(moduleId)
+      }
+      return next
+    })
+  }
 
   // Build the export document (flexible structure for draft exports)
   const exportDocument = useMemo(() => ({
@@ -164,56 +395,307 @@ export default function UnpackStep6() {
             </div>
 
             <TabsContent value="instructor">
-              <div className="space-y-6 max-h-[500px] overflow-y-auto">
-                {/* Course Info */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Course Information</h3>
-                  <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                    <div><span className="font-medium">Title:</span> {course.title || 'Not set'}</div>
-                    <div><span className="font-medium">Code:</span> {course.code || 'Not set'}</div>
-                    <div><span className="font-medium">Discipline:</span> {course.discipline || 'Not set'}</div>
-                    <div><span className="font-medium">Level:</span> {course.level || 'Not set'}</div>
+              <div className="space-y-4 max-h-[600px] overflow-y-auto pr-2">
+                {/* 1. Course Overview */}
+                <CollapsibleSection
+                  title="Course Overview"
+                  expanded={expandedSections.courseOverview}
+                  onToggle={() => toggleSection('courseOverview')}
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Course Information</h4>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <KeyValue label="Title" value={course.title} />
+                        <KeyValue label="Code" value={course.code} />
+                        <KeyValue label="Institution" value={course.institution} />
+                        <KeyValue label="Discipline" value={course.discipline} />
+                        <KeyValue label="Subdiscipline" value={course.subdiscipline} />
+                        <KeyValue label="Level" value={course.level} />
+                        <KeyValue label="Credits" value={course.credits} />
+                        <KeyValue label="Duration" value={course.duration} />
+                        <KeyValue label="Delivery Mode" value={course.delivery_mode?.replace(/_/g, ' ')} />
+                      </div>
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Core Competency</h4>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="italic text-sm">{coreCompetency.statement || <span className="text-gray-400">Not set</span>}</p>
+                        <p className="text-xs text-gray-500 mt-2">Type: {coreCompetency.type || 'Not set'}</p>
+                      </div>
+                    </div>
                   </div>
-                </div>
+                </CollapsibleSection>
 
-                {/* Core Competency */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Core Competency</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <p className="italic">{coreCompetency.statement || 'Not set'}</p>
-                    <p className="text-sm text-gray-500 mt-1">Type: {coreCompetency.type || 'Not set'}</p>
-                  </div>
-                </div>
-
-                {/* Modules Summary */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">Modules ({modules.length})</h3>
+                {/* 2. Learning Structure */}
+                <CollapsibleSection
+                  title="Learning Structure"
+                  badge={`${modules.length} modules`}
+                  isEmpty={modules.length === 0}
+                  expanded={expandedSections.learningStructure}
+                  onToggle={() => toggleSection('learningStructure')}
+                >
                   <div className="space-y-2">
                     {modules.map((module) => (
-                      <div key={module.id} className="bg-gray-50 rounded-lg p-3">
-                        <div className="font-medium">{module.sequence}. {module.title}</div>
-                        <div className="text-sm text-gray-500">
-                          {module.learning_outcome ? '1 outcome' : 'No outcome'}, {module.topics?.length || 0} topics
-                        </div>
-                      </div>
+                      <ModuleCard
+                        key={module.id}
+                        module={module}
+                        expanded={expandedModules.has(module.id)}
+                        onToggle={() => toggleModule(module.id)}
+                      />
                     ))}
                   </div>
-                </div>
+                </CollapsibleSection>
 
-                {/* AI Policy */}
-                <div>
-                  <h3 className="font-semibold text-gray-900 mb-2">AI Policy</h3>
-                  <div className="bg-gray-50 rounded-lg p-4">
-                    <div><span className="font-medium">Level:</span> {aiPolicy.course_level || 'Not set'}</div>
-                    {aiPolicy.details && <div className="mt-2 text-sm">{aiPolicy.details}</div>}
+                {/* 3. Knowledge Graph */}
+                <CollapsibleSection
+                  title="Knowledge Graph"
+                  badge={`${nodes.size} nodes, ${edges.size} edges`}
+                  isEmpty={nodes.size === 0}
+                  expanded={expandedSections.knowledgeGraph}
+                  onToggle={() => toggleSection('knowledgeGraph')}
+                >
+                  <div className="space-y-4">
+                    <div>
+                      <h4 className="text-sm font-medium text-gray-700 mb-2">Nodes ({nodes.size})</h4>
+                      <div className="grid grid-cols-2 gap-2 max-h-[300px] overflow-y-auto">
+                        {Array.from(nodes.values()).map((node) => (
+                          <NodeDisplay key={node.id} node={node} />
+                        ))}
+                      </div>
+                    </div>
+                    {edges.size > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Edges ({edges.size})</h4>
+                        <div className="bg-gray-50 rounded-lg p-3 max-h-[200px] overflow-y-auto space-y-1">
+                          {Array.from(edges.values()).map((edge) => (
+                            <EdgeDisplay key={edge.id} edge={edge} nodes={nodes} />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                </CollapsibleSection>
+
+                {/* 4. Prerequisites */}
+                <CollapsibleSection
+                  title="Prerequisites"
+                  isEmpty={!hasPrerequisites}
+                  expanded={expandedSections.prerequisites}
+                  onToggle={() => toggleSection('prerequisites')}
+                >
+                  <div className="space-y-4">
+                    {prerequisites.courses && prerequisites.courses.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Prerequisite Courses</h4>
+                        <div className="space-y-2">
+                          {prerequisites.courses.map((course, i) => (
+                            <div key={i} className="bg-gray-50 rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{course.code}</span>
+                                {course.title && <span className="text-gray-600">- {course.title}</span>}
+                                <Badge>{course.required ? 'Required' : 'Recommended'}</Badge>
+                              </div>
+                              {course.concepts_assumed && course.concepts_assumed.length > 0 && (
+                                <div className="mt-2">
+                                  <span className="text-xs text-gray-500">Concepts assumed: </span>
+                                  <div className="flex flex-wrap gap-1 mt-1">
+                                    {course.concepts_assumed.map((c, j) => (
+                                      <Badge key={j}>{c}</Badge>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {prerequisites.skills && prerequisites.skills.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h4>
+                        <div className="space-y-2">
+                          {prerequisites.skills.map((skill, i) => (
+                            <div key={i} className="bg-gray-50 rounded-lg p-2 flex items-center gap-2">
+                              <span>{skill.skill}</span>
+                              {skill.proficiency_level && <Badge>{skill.proficiency_level}</Badge>}
+                              <Badge>{skill.required ? 'Required' : 'Recommended'}</Badge>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {prerequisites.knowledge && prerequisites.knowledge.length > 0 && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Background Knowledge</h4>
+                        <div className="space-y-2">
+                          {prerequisites.knowledge.map((knowledge, i) => (
+                            <div key={i} className="bg-gray-50 rounded-lg p-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-medium">{knowledge.area}</span>
+                                <Badge>{knowledge.required ? 'Required' : 'Recommended'}</Badge>
+                              </div>
+                              {knowledge.description && (
+                                <p className="text-sm text-gray-600 mt-1">{knowledge.description}</p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+
+                {/* 5. Context: Learner & Teaching */}
+                <CollapsibleSection
+                  title="Context: Learner & Teaching"
+                  isEmpty={!hasContextLearner}
+                  expanded={expandedSections.contextLearner}
+                  onToggle={() => toggleSection('contextLearner')}
+                >
+                  <div className="space-y-4">
+                    {hasLearnerProfile && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Learner Profile</h4>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <KeyValue label="Type" value={learnerProfile.type?.replace(/_/g, ' ')} />
+                          <KeyValue label="Typical Background" value={learnerProfile.typical_background} />
+                          <KeyValue label="Common Challenges" value={learnerProfile.common_challenges} />
+                          <KeyValue label="Motivations" value={learnerProfile.motivations} />
+                        </div>
+                      </div>
+                    )}
+                    {hasTeachingApproach && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Teaching Approach</h4>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <KeyValue label="Primary" value={teachingApproach.primary?.replace(/_/g, ' ')} />
+                          {teachingApproach.secondary && teachingApproach.secondary.length > 0 && (
+                            <div className="py-1">
+                              <span className="text-sm text-gray-500">Secondary</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {teachingApproach.secondary.map((s, i) => (
+                                  <Badge key={i}>{s.replace(/_/g, ' ')}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {teachingApproach.philosophy && (
+                            <div className="pt-2">
+                              <span className="text-sm text-gray-500">Philosophy</span>
+                              <p className="text-sm mt-1">{teachingApproach.philosophy}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {hasAIPolicy && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">AI Policy</h4>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <KeyValue label="Course Level" value={aiPolicy.course_level?.replace(/_/g, ' ')} />
+                          {aiPolicy.rationale && (
+                            <div className="pt-2">
+                              <span className="text-sm text-gray-500">Rationale</span>
+                              <p className="text-sm mt-1">{aiPolicy.rationale}</p>
+                            </div>
+                          )}
+                          {aiPolicy.details && (
+                            <div className="pt-2">
+                              <span className="text-sm text-gray-500">Details</span>
+                              <p className="text-sm mt-1">{aiPolicy.details}</p>
+                            </div>
+                          )}
+                          {aiPolicy.skills_to_develop && aiPolicy.skills_to_develop.length > 0 && (
+                            <div className="pt-2">
+                              <span className="text-sm text-gray-500">Skills to Develop</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {aiPolicy.skills_to_develop.map((s, i) => (
+                                  <Badge key={i}>{s}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {aiPolicy.skills_to_delegate && aiPolicy.skills_to_delegate.length > 0 && (
+                            <div className="pt-2">
+                              <span className="text-sm text-gray-500">Skills to Delegate</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {aiPolicy.skills_to_delegate.map((s, i) => (
+                                  <Badge key={i}>{s}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
+
+                {/* 6. Context: Advanced */}
+                <CollapsibleSection
+                  title="Context: Advanced"
+                  isEmpty={!hasContextAdvanced}
+                  expanded={expandedSections.contextAdvanced}
+                  onToggle={() => toggleSection('contextAdvanced')}
+                >
+                  <div className="space-y-4">
+                    {hasInstructorPersona && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Instructor Persona</h4>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <KeyValue label="Formality" value={instructorPersona.formality?.replace(/_/g, ' ')} />
+                          <KeyValue label="Encouragement Style" value={instructorPersona.encouragement_style?.replace(/_/g, ' ')} />
+                          <KeyValue label="Feedback Approach" value={instructorPersona.feedback_approach?.replace(/_/g, ' ')} />
+                          {instructorPersona.phrases_to_use && instructorPersona.phrases_to_use.length > 0 && (
+                            <div className="pt-2">
+                              <span className="text-sm text-gray-500">Phrases to Use</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {instructorPersona.phrases_to_use.map((p, i) => (
+                                  <Badge key={i}>{p}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {instructorPersona.phrases_to_avoid && instructorPersona.phrases_to_avoid.length > 0 && (
+                            <div className="pt-2">
+                              <span className="text-sm text-gray-500">Phrases to Avoid</span>
+                              <div className="flex flex-wrap gap-1 mt-1">
+                                {instructorPersona.phrases_to_avoid.map((p, i) => (
+                                  <Badge key={i}>{p}</Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                          {instructorPersona.cultural_considerations && (
+                            <div className="pt-2">
+                              <span className="text-sm text-gray-500">Cultural Considerations</span>
+                              <p className="text-sm mt-1">{instructorPersona.cultural_considerations}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    )}
+                    {hasDisciplineConventions && (
+                      <div>
+                        <h4 className="text-sm font-medium text-gray-700 mb-2">Discipline Conventions</h4>
+                        <div className="bg-gray-50 rounded-lg p-3">
+                          <KeyValue label="Citation Style" value={disciplineConventions.citation_style} />
+                          <KeyValue label="Terminology Notes" value={disciplineConventions.terminology_notes} />
+                          <KeyValue label="Methodological Conventions" value={disciplineConventions.methodological_conventions} />
+                          <KeyValue label="Ethical Considerations" value={disciplineConventions.ethical_considerations} />
+                          <KeyValue label="Professional Standards" value={disciplineConventions.professional_standards} />
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </CollapsibleSection>
               </div>
             </TabsContent>
 
             <TabsContent value="json">
               <div className="relative">
-                <pre className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-auto max-h-[500px] text-xs font-mono">
+                <pre className="bg-gray-900 text-gray-100 rounded-lg p-4 overflow-auto max-h-[600px] text-xs font-mono">
                   {jsonString}
                 </pre>
               </div>
