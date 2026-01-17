@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
@@ -37,7 +37,13 @@ export default function UnpackStep1() {
     clearError,
     markStepCompleted,
     startSession,
+    setCurrentStep,
   } = useUIStore()
+
+  // Set current step on mount
+  useEffect(() => {
+    setCurrentStep(1)
+  }, [setCurrentStep])
 
   const processContent = useCallback(async (text: string, fileName?: string) => {
     setIsExtracting(true)

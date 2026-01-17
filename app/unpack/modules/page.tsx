@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Badge, Button, Select, Input, Textarea } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
@@ -140,6 +140,11 @@ export default function UnpackStep3() {
   const { modules, updateModule, removeModule, addModule, reorderModules } = useModuleStore()
   const { markStepCompleted, setCurrentStep } = useUIStore()
   const [expandedId, setExpandedId] = useState<string | null>(null)
+
+  // Set current step on mount
+  useEffect(() => {
+    setCurrentStep(3)
+  }, [setCurrentStep])
 
   const handleAddModule = () => {
     const newModule: Module = {

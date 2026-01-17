@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Badge, Button, Input } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
@@ -27,6 +27,11 @@ export default function UnpackStep4() {
   const { syllabusText, course } = useCourseStore()
 
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
+
+  // Set current step on mount
+  useEffect(() => {
+    setCurrentStep(4)
+  }, [setCurrentStep])
   const [suggestedSkills, setSuggestedSkills] = useState<SuggestedSkill[]>([])
   const [suggestedKnowledge, setSuggestedKnowledge] = useState<SuggestedKnowledge[]>([])
   const [suggestionError, setSuggestionError] = useState<string | null>(null)

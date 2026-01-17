@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, Button, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
 import {
@@ -10,9 +10,15 @@ import {
   useContextStore,
   useUIStore,
 } from '@/stores'
+
 export default function UnpackStep6() {
   const [copied, setCopied] = useState(false)
-  const { exportViewMode, setExportViewMode } = useUIStore()
+  const { exportViewMode, setExportViewMode, setCurrentStep } = useUIStore()
+
+  // Set current step on mount
+  useEffect(() => {
+    setCurrentStep(6)
+  }, [setCurrentStep])
 
   const { course, coreCompetency } = useCourseStore()
   const { modules } = useModuleStore()

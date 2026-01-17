@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Textarea, Select, Badge, Button } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
@@ -13,6 +13,11 @@ export default function UnpackStep2() {
   const { markStepCompleted, setCurrentStep } = useUIStore()
 
   const [isEditing, setIsEditing] = useState(false)
+
+  // Set current step on mount
+  useEffect(() => {
+    setCurrentStep(2)
+  }, [setCurrentStep])
 
   const handleSaveAndContinue = () => {
     markStepCompleted(2)
