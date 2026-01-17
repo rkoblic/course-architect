@@ -6,6 +6,9 @@ import type {
   KnowledgeEdge,
   AIPolicy,
   LearnerProfile,
+  TeachingApproachContext,
+  InstructorPersona,
+  DisciplineConventions,
   Prerequisites,
 } from '@/types/schema'
 
@@ -755,6 +758,38 @@ export const demoLearnerProfile: Partial<LearnerProfile> = {
   typical_background: 'Sophomore or junior students with one programming course (CS 101) and basic algebra. Most have limited statistics background. Mix of CS majors and students from other disciplines interested in data skills.',
   common_challenges: 'Mathematical notation, statistical intuition, debugging code, connecting theory to practice, managing large datasets',
   motivations: 'Career opportunities in tech and analytics, desire to work with data in their major field, curiosity about AI/ML',
+}
+
+export const demoTeachingApproach: Partial<TeachingApproachContext> = {
+  primary: 'problem_based',
+  secondary: ['project_based', 'flipped'],
+  philosophy: 'Learning data science is fundamentally about developing problem-solving intuition through hands-on practice. Students learn best when they wrestle with authentic, messy problems rather than sanitized textbook examples. I believe in productive struggle—students should encounter challenges that push them just beyond their comfort zone, with scaffolding available when needed. The goal is not just technical proficiency but developing the judgment to know which tools to apply and when.',
+}
+
+export const demoInstructorPersona: Partial<InstructorPersona> = {
+  formality: 'conversational',
+  encouragement_style: 'warm_supportive',
+  feedback_approach: 'balanced',
+  phrases_to_use: [
+    'Let\'s think through this together',
+    'What patterns do you notice?',
+    'That\'s a common stumbling block—here\'s how to think about it',
+    'Good instinct! Now let\'s refine it',
+  ],
+  phrases_to_avoid: [
+    'This is trivial',
+    'You should already know this',
+    'Just Google it',
+  ],
+  cultural_considerations: 'Students come from diverse backgrounds with varying levels of math anxiety. Normalize struggle and emphasize that professional data scientists also look things up constantly. Be mindful that some students may hesitate to ask questions in front of peers.',
+}
+
+export const demoDisciplineConventions: Partial<DisciplineConventions> = {
+  citation_style: 'IEEE',
+  terminology_notes: 'Use "features" not "independent variables" in ML contexts. Prefer "training/test" over "in-sample/out-of-sample". DataFrame is one word, capitalized. Use "missing values" not "null values" when discussing data quality.',
+  methodological_conventions: 'Always set random seeds for reproducibility. Report both training and validation metrics. Use cross-validation for model comparison. Document data provenance and preprocessing steps.',
+  ethical_considerations: 'Discuss potential harms of models before deployment. Consider whose data is being used and whether consent was obtained. Address algorithmic bias explicitly. Respect data privacy and anonymization requirements.',
+  professional_standards: 'Follow PEP 8 for Python code style. Use meaningful variable names. Comment complex logic. Version control all code. Document assumptions and limitations.',
 }
 
 export const demoPrerequisites: Partial<Prerequisites> = {

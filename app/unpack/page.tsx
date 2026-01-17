@@ -15,6 +15,9 @@ import {
   demoEdges,
   demoAIPolicy,
   demoLearnerProfile,
+  demoTeachingApproach,
+  demoInstructorPersona,
+  demoDisciplineConventions,
   demoPrerequisites,
   demoSyllabusText,
 } from '@/lib/demo-data'
@@ -28,7 +31,7 @@ export default function UnpackStep1() {
   const { setSyllabusText, setCourse, setCoreCompetency, syllabusText } = useCourseStore()
   const { setModules } = useModuleStore()
   const { setNodes, setEdges, setMetadata } = useKnowledgeGraphStore()
-  const { setAIPolicy, setLearnerProfile, setPrerequisites } = useContextStore()
+  const { setAIPolicy, setLearnerProfile, setTeachingApproach, setInstructorPersona, setDisciplineConventions, setPrerequisites } = useContextStore()
   const {
     setExtractionProgress,
     resetExtractionProgress,
@@ -204,6 +207,9 @@ export default function UnpackStep1() {
     setMetadata({ extraction_method: 'ai_extracted', is_dag_valid: true })
     setAIPolicy(demoAIPolicy)
     setLearnerProfile(demoLearnerProfile)
+    setTeachingApproach(demoTeachingApproach)
+    setInstructorPersona(demoInstructorPersona)
+    setDisciplineConventions(demoDisciplineConventions)
     setPrerequisites(demoPrerequisites)
 
     // Mark step completed and navigate
@@ -225,6 +231,9 @@ export default function UnpackStep1() {
     setMetadata,
     setAIPolicy,
     setLearnerProfile,
+    setTeachingApproach,
+    setInstructorPersona,
+    setDisciplineConventions,
     setPrerequisites,
     setExtractionProgress,
     resetExtractionProgress,
