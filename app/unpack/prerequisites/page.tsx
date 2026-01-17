@@ -1,16 +1,102 @@
 'use client'
 
+import { useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Badge, Button, Input } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
-import { useContextStore, useKnowledgeGraphStore, useUIStore } from '@/stores'
+import { useContextStore, useKnowledgeGraphStore, useUIStore, useCourseStore } from '@/stores'
 import type { PrerequisiteCourse, PrerequisiteSkill, PrerequisiteKnowledge } from '@/types/schema'
+
+interface SuggestedSkill {
+  skill: string
+  proficiency_level: 'basic' | 'intermediate' | 'advanced'
+  rationale: string
+}
+
+interface SuggestedKnowledge {
+  area: string
+  description: string
+  rationale: string
+}
 
 export default function UnpackStep4() {
   const router = useRouter()
   const { prerequisites, updatePrerequisites } = useContextStore()
   const { metadata } = useKnowledgeGraphStore()
   const { markStepCompleted, setCurrentStep } = useUIStore()
+  const { syllabusText, course } = useCourseStore()
+
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
+  const [suggestedSkills, setSuggestedSkills] = useState<SuggestedSkill[]>([])
+  const [suggestedKnowledge, setSuggestedKnowledge] = useState<SuggestedKnowledge[]>([])
+  const [suggestionError, setSuggestionError] = useState<string | null>(null)
+
+  const fetchSuggestions = useCallback(async () => {
+    if (!syllabusText) {
+      setSuggestionError('No syllabus text available')
+      return
+    }
+
+    setIsLoadingSuggestions(true)
+    setSuggestionError(null)
+
+    try {
+      const response = await fetch('/api/suggest/prerequisites', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          syllabusText,
+          courseTitle: course.title,
+          discipline: course.discipline,
+        }),
+      })
+
+      if (!response.ok) {
+        throw new Error('Failed to generate suggestions')
+      }
+
+      const data = await response.json()
+      setSuggestedSkills(data.skills || [])
+      setSuggestedKnowledge(data.knowledge || [])
+    } catch (error) {
+      console.error('Suggestion error:', error)
+      setSuggestionError(error instanceof Error ? error.message : 'Failed to generate suggestions')
+    } finally {
+      setIsLoadingSuggestions(false)
+    }
+  }, [syllabusText, course.title, course.discipline])
+
+  const acceptSkill = (suggestion: SuggestedSkill) => {
+    const current = prerequisites.skills || []
+    updatePrerequisites({
+      skills: [...current, {
+        skill: suggestion.skill,
+        proficiency_level: suggestion.proficiency_level,
+        required: true,
+      }],
+    })
+    setSuggestedSkills(suggestedSkills.filter((s) => s.skill !== suggestion.skill))
+  }
+
+  const dismissSkill = (skill: string) => {
+    setSuggestedSkills(suggestedSkills.filter((s) => s.skill !== skill))
+  }
+
+  const acceptKnowledge = (suggestion: SuggestedKnowledge) => {
+    const current = prerequisites.knowledge || []
+    updatePrerequisites({
+      knowledge: [...current, {
+        area: suggestion.area,
+        description: suggestion.description,
+        required: false,
+      }],
+    })
+    setSuggestedKnowledge(suggestedKnowledge.filter((k) => k.area !== suggestion.area))
+  }
+
+  const dismissKnowledge = (area: string) => {
+    setSuggestedKnowledge(suggestedKnowledge.filter((k) => k.area !== area))
+  }
 
   const addCourse = () => {
     const current = prerequisites.courses || []
@@ -169,13 +255,77 @@ export default function UnpackStep4() {
               <h3 className="font-medium text-gray-900">Required Skills</h3>
               <p className="text-sm text-gray-500">Skills students should already have</p>
             </div>
-            <Button variant="outline" size="sm" onClick={addSkill}>
-              Add Skill
-            </Button>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={fetchSuggestions}
+                disabled={isLoadingSuggestions || !syllabusText}
+              >
+                {isLoadingSuggestions ? (
+                  <>
+                    <svg className="animate-spin -ml-1 mr-2 h-4 w-4" fill="none" viewBox="0 0 24 24">
+                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+                    </svg>
+                    Generating...
+                  </>
+                ) : (
+                  'AI Suggest'
+                )}
+              </Button>
+              <Button variant="outline" size="sm" onClick={addSkill}>
+                Add Skill
+              </Button>
+            </div>
           </div>
 
-          {(prerequisites.skills || []).length === 0 ? (
-            <p className="text-sm text-gray-400 italic">No prerequisite skills specified</p>
+          {suggestionError && (
+            <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+              {suggestionError}
+            </div>
+          )}
+
+          {/* AI Suggestions */}
+          {suggestedSkills.length > 0 && (
+            <div className="mb-4 space-y-2">
+              <p className="text-xs font-medium text-primary-600 uppercase tracking-wide">AI Suggestions</p>
+              {suggestedSkills.map((suggestion) => (
+                <div key={suggestion.skill} className="flex items-start gap-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-gray-900">{suggestion.skill}</span>
+                      <Badge variant="secondary">{suggestion.proficiency_level}</Badge>
+                    </div>
+                    <p className="text-xs text-gray-500 mt-1">{suggestion.rationale}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => acceptSkill(suggestion)}
+                      className="p-1 text-green-600 hover:bg-green-100 rounded"
+                      title="Accept"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => dismissSkill(suggestion.skill)}
+                      className="p-1 text-gray-400 hover:bg-gray-100 rounded"
+                      title="Dismiss"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(prerequisites.skills || []).length === 0 && suggestedSkills.length === 0 ? (
+            <p className="text-sm text-gray-400 italic">No prerequisite skills specified. Try AI Suggest to get started.</p>
           ) : (
             <div className="space-y-3">
               {(prerequisites.skills || []).map((skill, index) => (
@@ -232,7 +382,43 @@ export default function UnpackStep4() {
             </Button>
           </div>
 
-          {(prerequisites.knowledge || []).length === 0 ? (
+          {/* AI Suggestions for Knowledge */}
+          {suggestedKnowledge.length > 0 && (
+            <div className="mb-4 space-y-2">
+              <p className="text-xs font-medium text-primary-600 uppercase tracking-wide">AI Suggestions</p>
+              {suggestedKnowledge.map((suggestion) => (
+                <div key={suggestion.area} className="flex items-start gap-3 p-3 bg-primary-50 border border-primary-200 rounded-lg">
+                  <div className="flex-1">
+                    <span className="font-medium text-gray-900">{suggestion.area}</span>
+                    <p className="text-sm text-gray-600">{suggestion.description}</p>
+                    <p className="text-xs text-gray-500 mt-1">{suggestion.rationale}</p>
+                  </div>
+                  <div className="flex gap-1">
+                    <button
+                      onClick={() => acceptKnowledge(suggestion)}
+                      className="p-1 text-green-600 hover:bg-green-100 rounded"
+                      title="Accept"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                      </svg>
+                    </button>
+                    <button
+                      onClick={() => dismissKnowledge(suggestion.area)}
+                      className="p-1 text-gray-400 hover:bg-gray-100 rounded"
+                      title="Dismiss"
+                    >
+                      <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                      </svg>
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {(prerequisites.knowledge || []).length === 0 && suggestedKnowledge.length === 0 ? (
             <p className="text-sm text-gray-400 italic">No background knowledge specified</p>
           ) : (
             <div className="space-y-3">
