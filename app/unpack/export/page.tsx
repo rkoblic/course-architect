@@ -10,8 +10,6 @@ import {
   useContextStore,
   useUIStore,
 } from '@/stores'
-import type { CourseArchitectDocument } from '@/types/schema'
-
 export default function UnpackStep6() {
   const [copied, setCopied] = useState(false)
   const { exportViewMode, setExportViewMode } = useUIStore()
@@ -21,8 +19,8 @@ export default function UnpackStep6() {
   const { nodes, edges, metadata } = useKnowledgeGraphStore()
   const { aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites } = useContextStore()
 
-  // Build the complete document
-  const document: CourseArchitectDocument = useMemo(() => ({
+  // Build the export document (flexible structure for draft exports)
+  const exportDocument = useMemo(() => ({
     schema_version: '0.4',
     exported_at: new Date().toISOString(),
     tool: 'Course Architect',
@@ -46,11 +44,11 @@ export default function UnpackStep6() {
       title: m.title,
       sequence: m.sequence,
       description: m.description,
-      learning_objectives: m.learning_objectives || [],
+      learning_outcome: m.learning_outcome || (m.learning_objectives?.[0] || ''),
+      bloom_level: m.bloom_level || 'understand',
+      ai_partnership_mode: m.ai_partnership_mode || 'collaborate',
       topics: m.topics || [],
-      activities: m.activities,
-      assessments: m.assessments,
-      estimated_hours: m.estimated_hours,
+      concept_ids: m.concept_ids,
     })),
     knowledge_graph: {
       nodes: nodes,
@@ -76,7 +74,7 @@ export default function UnpackStep6() {
     prerequisites: Object.keys(prerequisites).length > 0 ? prerequisites : undefined,
   }), [course, coreCompetency, modules, nodes, edges, metadata, aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites])
 
-  const jsonString = JSON.stringify(document, null, 2)
+  const jsonString = JSON.stringify(exportDocument, null, 2)
 
   const handleCopy = async () => {
     await navigator.clipboard.writeText(jsonString)
