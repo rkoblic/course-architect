@@ -14,7 +14,7 @@ export function FileDropzone({
   onFileSelect,
   isLoading = false,
   className,
-  acceptedFormats = ['.pdf', '.docx', '.doc', '.txt', '.md'],
+  acceptedFormats = ['.docx', '.doc', '.txt', '.md'],
 }: FileDropzoneProps) {
   const [isDragActive, setIsDragActive] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -180,7 +180,7 @@ export function FileDropzone({
           </div>
 
           <p className="text-xs text-gray-400">
-            Supports PDF, DOCX, and TXT files up to 10MB
+            Supports DOCX and TXT files up to 10MB
           </p>
         </div>
       </div>
