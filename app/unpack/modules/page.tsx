@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Badge, Button, Select, Input, Textarea } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
-import { useModuleStore, useUIStore, generateModuleId } from '@/stores'
+import { useModuleStore, useUIStore, generateModuleId, useKnowledgeGraphStore } from '@/stores'
 import { BLOOM_LEVELS, AI_PARTNERSHIP_MODES, type BloomLevel, type AIPartnershipMode, type Module } from '@/types/schema'
 import { cn } from '@/lib/utils'
 
@@ -139,7 +139,9 @@ export default function UnpackStep3() {
   const router = useRouter()
   const { modules, updateModule, removeModule, addModule, reorderModules } = useModuleStore()
   const { markStepCompleted, setCurrentStep } = useUIStore()
+  const { nodes, edges, metadata, getNodesByModule } = useKnowledgeGraphStore()
   const [expandedId, setExpandedId] = useState<string | null>(null)
+  const [conceptsExpanded, setConceptsExpanded] = useState(false)
 
   // Set current step on mount
   useEffect(() => {
@@ -195,6 +197,113 @@ export default function UnpackStep3() {
         </svg>
         Add Module
       </Button>
+
+      {/* Extracted Concepts Section */}
+      {nodes.size > 0 && (
+        <Card variant="bordered" className="overflow-hidden">
+          <div
+            className="flex items-center justify-between p-4 cursor-pointer hover:bg-gray-50"
+            onClick={() => setConceptsExpanded(!conceptsExpanded)}
+          >
+            <div className="flex items-center gap-3">
+              <svg
+                className={cn(
+                  'w-5 h-5 text-gray-400 transition-transform',
+                  conceptsExpanded && 'rotate-90'
+                )}
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+              <div>
+                <h3 className="font-medium text-gray-900">Extracted Concepts</h3>
+                <p className="text-sm text-gray-500">
+                  {metadata.node_count || nodes.size} concepts, {metadata.edge_count || edges.size} relationships
+                </p>
+              </div>
+            </div>
+            <Badge variant={metadata.is_dag_valid ? 'success' : 'error'}>
+              {metadata.is_dag_valid ? 'Valid DAG' : 'Cycle Detected'}
+            </Badge>
+          </div>
+
+          {conceptsExpanded && (
+            <CardContent className="pt-0 border-t border-gray-100">
+              <div className="space-y-4">
+                {/* Concepts grouped by module */}
+                {modules.map((module) => {
+                  const moduleNodes = getNodesByModule(module.id)
+                  if (moduleNodes.length === 0) return null
+                  return (
+                    <div key={module.id} className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-700">
+                        Module {module.sequence}: {module.title}
+                      </h4>
+                      <div className="pl-4 space-y-1">
+                        {moduleNodes.map((node) => (
+                          <div key={node.id} className="flex items-center gap-2 text-sm">
+                            <span className="text-gray-400">├─</span>
+                            <Badge variant="secondary" size="sm">{node.type}</Badge>
+                            <span className="text-gray-900">{node.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })}
+
+                {/* Unassigned concepts (no parent module) */}
+                {(() => {
+                  const unassignedNodes = Array.from(nodes.values()).filter(
+                    (node) => !node.parent_module_id
+                  )
+                  if (unassignedNodes.length === 0) return null
+                  return (
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-medium text-gray-500 italic">Unassigned Concepts</h4>
+                      <div className="pl-4 space-y-1">
+                        {unassignedNodes.map((node) => (
+                          <div key={node.id} className="flex items-center gap-2 text-sm">
+                            <span className="text-gray-400">├─</span>
+                            <Badge variant="secondary" size="sm">{node.type}</Badge>
+                            <span className="text-gray-900">{node.label}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )
+                })()}
+
+                {/* Relationships */}
+                {edges.size > 0 && (
+                  <div className="space-y-2 pt-4 border-t border-gray-100">
+                    <h4 className="text-sm font-medium text-gray-700">
+                      Relationships ({edges.size})
+                    </h4>
+                    <div className="space-y-1 max-h-48 overflow-y-auto">
+                      {Array.from(edges.values()).map((edge) => {
+                        const sourceNode = nodes.get(edge.source)
+                        const targetNode = nodes.get(edge.target)
+                        return (
+                          <div key={edge.id} className="flex items-center gap-2 text-sm text-gray-600">
+                            <span className="text-gray-400">•</span>
+                            <span className="font-medium">{sourceNode?.label || edge.source}</span>
+                            <span className="text-gray-400">→</span>
+                            <span className="font-medium">{targetNode?.label || edge.target}</span>
+                            <Badge variant="secondary" size="sm">{edge.relationship.replace(/_/g, ' ')}</Badge>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          )}
+        </Card>
+      )}
 
       {/* Legend */}
       <details className="group">

@@ -4,7 +4,7 @@ import { useState, useCallback, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Badge, Button, Input } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
-import { useContextStore, useKnowledgeGraphStore, useUIStore, useCourseStore } from '@/stores'
+import { useContextStore, useUIStore, useCourseStore } from '@/stores'
 import type { PrerequisiteCourse, PrerequisiteSkill, PrerequisiteKnowledge } from '@/types/schema'
 
 interface SuggestedSkill {
@@ -22,7 +22,6 @@ interface SuggestedKnowledge {
 export default function UnpackStep4() {
   const router = useRouter()
   const { prerequisites, updatePrerequisites } = useContextStore()
-  const { metadata } = useKnowledgeGraphStore()
   const { markStepCompleted, setCurrentStep } = useUIStore()
   const { syllabusText, course } = useCourseStore()
 
@@ -174,28 +173,6 @@ export default function UnpackStep4() {
           Define what students should know or be able to do before starting this course.
         </p>
       </div>
-
-      {/* Knowledge Graph Status */}
-      <Card variant="bordered">
-        <CardContent>
-          <div className="flex items-center justify-between">
-            <div>
-              <h3 className="font-medium text-gray-900">Knowledge Graph Status</h3>
-              <p className="text-sm text-gray-500 mt-1">
-                Internal concept dependencies have been extracted
-              </p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant={metadata.is_dag_valid ? 'success' : 'error'}>
-                {metadata.is_dag_valid ? 'Valid DAG' : 'Cycle Detected'}
-              </Badge>
-              <span className="text-sm text-gray-500">
-                {metadata.node_count || 0} concepts, {metadata.edge_count || 0} relationships
-              </span>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
 
       {/* Prerequisite Courses */}
       <Card variant="bordered">
