@@ -96,10 +96,10 @@ export default function UnpackStep1() {
       const modulesData = await modulesResponse.json()
       setModules(modulesData.modules || [])
 
-      // Stage 4: Extract knowledge graph
-      setExtractionProgress({ stage: 'knowledge-graph', progress: 75, message: 'Building concept network...' })
+      // Stage 4a: Extract knowledge graph nodes
+      setExtractionProgress({ stage: 'knowledge-graph', progress: 60, message: 'Extracting concepts and skills...' })
 
-      const kgResponse = await fetch('/api/extract/knowledge-graph', {
+      const nodesResponse = await fetch('/api/extract/knowledge-graph/nodes', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -108,14 +108,38 @@ export default function UnpackStep1() {
         }),
       })
 
-      if (!kgResponse.ok) {
-        throw new Error('Failed to extract knowledge graph')
+      if (!nodesResponse.ok) {
+        throw new Error('Failed to extract knowledge graph nodes')
       }
 
-      const kgData = await kgResponse.json()
-      setNodes(kgData.nodes || [])
-      setEdges(kgData.edges || [])
-      setMetadata(kgData.metadata || {})
+      const nodesData = await nodesResponse.json()
+      setNodes(nodesData.nodes || [])
+
+      // Stage 4b: Extract knowledge graph edges
+      setExtractionProgress({ stage: 'knowledge-graph', progress: 80, message: 'Mapping relationships...' })
+
+      const edgesResponse = await fetch('/api/extract/knowledge-graph/edges', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          syllabusText: text,
+          modules: modulesData.modules,
+          nodes: nodesData.nodes,
+        }),
+      })
+
+      if (!edgesResponse.ok) {
+        throw new Error('Failed to extract knowledge graph edges')
+      }
+
+      const edgesData = await edgesResponse.json()
+      setEdges(edgesData.edges || [])
+      setMetadata({
+        extraction_method: 'ai_extracted',
+        is_dag_valid: edgesData.metadata?.is_dag_valid ?? true,
+        node_count: nodesData.nodes?.length || 0,
+        edge_count: edgesData.edges?.length || 0,
+      })
 
       // Complete
       setExtractionProgress({ stage: 'complete', progress: 100, message: 'Analysis complete!' })

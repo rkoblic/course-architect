@@ -37,7 +37,9 @@ app/
     extract/
       metadata/         # Course metadata extraction
       modules/          # Module extraction
-      knowledge-graph/  # Knowledge graph extraction
+      knowledge-graph/  # Knowledge graph extraction (legacy single-call)
+        nodes/          # Node extraction (step 1 of split extraction)
+        edges/          # Edge extraction (step 2, uses node IDs)
     suggest/
       prerequisites/    # AI prerequisite suggestions
 
@@ -169,6 +171,21 @@ npx tsc --noEmit # Type check without building (run before commits!)
 - Assess mode not started (shows "Coming Soon")
 
 ## Recent Changes (January 2026)
+
+### Split Knowledge Graph Extraction (Two-Step API)
+- **Node extraction first**: New `/api/extract/knowledge-graph/nodes` endpoint extracts concepts, skills, threshold concepts, and misconceptions with full 8192 token budget
+- **Edge extraction second**: New `/api/extract/knowledge-graph/edges` endpoint receives extracted node IDs to create valid relationships
+- **Better quality**: Each step has dedicated prompts (`knowledge-graph-nodes.ts`, `knowledge-graph-edges.ts`) focused on its specific task
+- **Validation**: Edge endpoint validates node references and filters invalid edges, checks DAG validity
+- **Extraction flow updated**: `app/unpack/page.tsx` now calls nodes endpoint first, then edges endpoint with the extracted nodes
+
+### CRUD Editing for Knowledge Graph Concepts
+- **Add concepts manually**: "Add Concept" button opens inline form on modules page
+- **Edit existing concepts**: Click edit icon to modify label, type, module, difficulty, description, keywords, AI notes
+- **Delete concepts**: Delete button with confirmation dialog, automatically removes associated edges
+- **Reassign modules**: Dropdown to change which module a concept belongs to
+- **Visual improvements**: Shows confirmed status, keywords as chips, descriptions, difficulty level
+- **Empty state**: Helpful message when no concepts extracted with option to add manually
 
 ### Feature Parity: Demo vs Real Flow
 - **Auto-trigger AI suggestions**: Prerequisites page now automatically fetches AI suggestions when user arrives with syllabus but no prerequisites

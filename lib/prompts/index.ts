@@ -14,6 +14,16 @@ export {
 } from './knowledge-graph-extraction'
 
 export {
+  KNOWLEDGE_GRAPH_NODES_SYSTEM_PROMPT,
+  KNOWLEDGE_GRAPH_NODES_USER_PROMPT,
+} from './knowledge-graph-nodes'
+
+export {
+  KNOWLEDGE_GRAPH_EDGES_SYSTEM_PROMPT,
+  KNOWLEDGE_GRAPH_EDGES_USER_PROMPT,
+} from './knowledge-graph-edges'
+
+export {
   PREREQUISITES_SUGGESTION_SYSTEM_PROMPT,
   PREREQUISITES_SUGGESTION_USER_PROMPT,
 } from './prerequisites-suggestion'
