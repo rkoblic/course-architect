@@ -115,7 +115,7 @@ function CollapsibleSection({
   )
 }
 
-export default function UnpackStep5() {
+export default function UnpackStep6() {
   const router = useRouter()
   const {
     aiPolicy,
@@ -147,12 +147,12 @@ export default function UnpackStep5() {
 
   // Set current step on mount
   useEffect(() => {
-    setCurrentStep(5)
+    setCurrentStep(6)
   }, [setCurrentStep])
 
   const handleSaveAndContinue = () => {
-    markStepCompleted(5)
-    setCurrentStep(6)
+    markStepCompleted(6)
+    setCurrentStep(7)
     router.push('/unpack/export')
   }
 

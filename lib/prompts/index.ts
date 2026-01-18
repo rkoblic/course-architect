@@ -47,3 +47,8 @@ export {
   RUBRIC_GENERATION_SYSTEM_PROMPT,
   RUBRIC_GENERATION_USER_PROMPT,
 } from './rubric-generation'
+
+export {
+  ASSESSMENT_GENERATION_SYSTEM_PROMPT,
+  ASSESSMENT_GENERATION_USER_PROMPT,
+} from './assessment-generation'

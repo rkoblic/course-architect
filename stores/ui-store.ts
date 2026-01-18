@@ -1,12 +1,12 @@
 import { create } from 'zustand'
 import { persist } from 'zustand/middleware'
 
-export type UnpackStep = 1 | 2 | 3 | 4 | 5 | 6
+export type UnpackStep = 1 | 2 | 3 | 4 | 5 | 6 | 7
 export type AssessStep = 1 | 2 | 3 | 4 | 5
 export type AppMode = 'unpack' | 'assess'
 
 export interface ExtractionProgress {
-  stage: 'idle' | 'parsing' | 'metadata' | 'modules' | 'knowledge-graph' | 'complete' | 'error'
+  stage: 'idle' | 'parsing' | 'metadata' | 'modules' | 'knowledge-graph' | 'assessments' | 'complete' | 'error'
   progress: number // 0-100
   message: string
 }
@@ -104,6 +104,7 @@ const initialState = {
     4: false,
     5: false,
     6: false,
+    7: false,
   },
   assessCurrentStep: 1 as AssessStep,
   assessStepsCompleted: initialAssessStepsCompleted,
@@ -127,7 +128,7 @@ export const useUIStore = create<UIState>()(
 
       goToNextStep: () =>
         set((state) => ({
-          currentStep: Math.min(state.currentStep + 1, 6) as UnpackStep,
+          currentStep: Math.min(state.currentStep + 1, 7) as UnpackStep,
         })),
 
       goToPreviousStep: () =>
@@ -225,9 +226,10 @@ export const STEP_LABELS: Record<UnpackStep, { title: string; description: strin
   1: { title: 'Upload', description: 'Upload your syllabus' },
   2: { title: 'Competency', description: 'Define core competency' },
   3: { title: 'Modules', description: 'Structure learning modules' },
-  4: { title: 'Prerequisites', description: 'Map dependencies' },
-  5: { title: 'Context', description: 'Add course context' },
-  6: { title: 'Export', description: 'Review and export' },
+  4: { title: 'Assessments', description: 'Review assessments' },
+  5: { title: 'Prerequisites', description: 'Map dependencies' },
+  6: { title: 'Context', description: 'Add course context' },
+  7: { title: 'Export', description: 'Review and export' },
 }
 
 // Step labels for the Assess stepper

@@ -21,11 +21,16 @@ export function resetAllStores() {
 }
 
 /**
- * Resets only the Assess mode stores.
- * Call this when starting a fresh Assess session while preserving Unpack data.
+ * Resets Assess mode stores while preserving assessments extracted from Unpack.
+ * Call this when transitioning from Unpack to Assess mode.
+ * - Preserves assessments but clears vulnerability audits and alternatives
+ * - Resets rubrics
+ * - Resets Assess UI state
  */
 export function resetAssessStores() {
-  useAssessmentStore.getState().reset()
+  // Don't reset assessments entirely - preserve from Unpack!
+  // Only clear Assess-specific data (audits, alternatives)
+  useAssessmentStore.getState().clearAlternativesAndAudits()
   useRubricStore.getState().reset()
   useUIStore.getState().resetAssessUI()
 }

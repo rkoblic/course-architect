@@ -10,6 +10,7 @@ import type {
   InstructorPersona,
   DisciplineConventions,
   Prerequisites,
+  Assessment,
 } from '@/types/schema'
 
 /**
@@ -960,3 +961,67 @@ export const demoPrerequisites: Partial<Prerequisites> = {
     },
   ],
 }
+
+export const demoAssessments: Assessment[] = [
+  {
+    id: 'assessment-demo-1',
+    name: 'Weekly Assignments',
+    type: 'problem_set',
+    weight: 30,
+    description: 'Six weekly assignments covering data manipulation, cleaning, EDA, visualization, ML modeling, and ethics.',
+    module_ids: ['module-demo-1', 'module-demo-2', 'module-demo-3', 'module-demo-4', 'module-demo-6', 'module-demo-7'],
+    format: {
+      setting: 'take_home',
+      time_constraint: '3-4 hours each',
+      collaboration: 'individual',
+    },
+  },
+  {
+    id: 'assessment-demo-2',
+    name: 'Midterm Project',
+    type: 'project',
+    weight: 20,
+    description: 'Individual project applying data cleaning, EDA, and visualization to a real dataset with written analysis.',
+    module_ids: ['module-demo-1', 'module-demo-2', 'module-demo-3', 'module-demo-4', 'module-demo-5'],
+    format: {
+      setting: 'take_home',
+      time_constraint: '2 weeks',
+      collaboration: 'individual',
+    },
+  },
+  {
+    id: 'assessment-demo-3',
+    name: 'Final Project',
+    type: 'project',
+    weight: 30,
+    description: 'Team project applying the complete data science workflow from problem definition through final presentation.',
+    module_ids: ['module-demo-1', 'module-demo-2', 'module-demo-3', 'module-demo-4', 'module-demo-5', 'module-demo-6', 'module-demo-7'],
+    format: {
+      setting: 'take_home',
+      time_constraint: '3 weeks',
+      collaboration: 'small_group',
+    },
+  },
+  {
+    id: 'assessment-demo-4',
+    name: 'Class Participation',
+    type: 'participation',
+    weight: 10,
+    description: 'Active engagement in class discussions, in-class exercises, and online forum participation.',
+    format: {
+      setting: 'in_class',
+    },
+  },
+  {
+    id: 'assessment-demo-5',
+    name: 'Peer Reviews',
+    type: 'peer_review',
+    weight: 10,
+    description: 'Providing constructive feedback on classmates\' projects during midterm and final project phases.',
+    module_ids: ['module-demo-5', 'module-demo-7'],
+    format: {
+      setting: 'asynchronous',
+      collaboration: 'individual',
+    },
+  },
+]

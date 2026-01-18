@@ -11,6 +11,7 @@ import {
   useKnowledgeGraphStore,
   useContextStore,
   useUIStore,
+  useAssessmentStore,
 } from '@/stores'
 import { resetAssessStores } from '@/lib/reset-stores'
 import type { Module, KnowledgeNode, KnowledgeEdge, NodeType } from '@/types/schema'
@@ -226,7 +227,7 @@ function EdgeDisplay({ edge, nodes }: { edge: KnowledgeEdge; nodes: Map<string, 
   )
 }
 
-export default function UnpackStep6() {
+export default function UnpackStep7() {
   const router = useRouter()
   const [copied, setCopied] = useState(false)
   const { exportViewMode, setExportViewMode, setCurrentStep, setCurrentMode } = useUIStore()
@@ -250,13 +251,14 @@ export default function UnpackStep6() {
 
   // Set current step on mount
   useEffect(() => {
-    setCurrentStep(6)
+    setCurrentStep(7)
   }, [setCurrentStep])
 
   const { course, coreCompetency } = useCourseStore()
   const { modules } = useModuleStore()
   const { nodes, edges, metadata, exportAsPrerequisites, externalNodes } = useKnowledgeGraphStore()
   const { aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites } = useContextStore()
+  const { assessments } = useAssessmentStore()
 
   // Check if sections have data (check both context-store and external nodes)
   const hasPrerequisites = (prerequisites.courses?.length || prerequisites.skills?.length || prerequisites.knowledge?.length || externalNodes.size > 0) ?? false
@@ -349,7 +351,17 @@ export default function UnpackStep6() {
       }
       return Object.keys(prerequisites).length > 0 ? prerequisites : undefined
     })(),
-  }), [course, coreCompetency, modules, nodes, edges, metadata, aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites, exportAsPrerequisites])
+    // Include assessments if any were extracted or added
+    assessments: assessments.size > 0 ? Array.from(assessments.values()).map(a => ({
+      id: a.id,
+      name: a.name,
+      type: a.type,
+      weight: a.weight,
+      description: a.description,
+      module_ids: a.module_ids,
+      format: a.format,
+    })) : undefined,
+  }), [course, coreCompetency, modules, nodes, edges, metadata, aiPolicy, learnerProfile, teachingApproach, instructorPersona, disciplineConventions, prerequisites, exportAsPrerequisites, assessments])
 
   const jsonString = JSON.stringify(exportDocument, null, 2)
 
@@ -438,7 +450,7 @@ export default function UnpackStep6() {
       </Card>
 
       {/* Summary Stats */}
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-5 gap-4">
         <Card variant="bordered">
           <CardContent className="text-center py-4">
             <div className="text-2xl font-bold text-primary-600">{modules.length}</div>
@@ -451,6 +463,12 @@ export default function UnpackStep6() {
               {modules.filter((m) => m.learning_outcome).length}
             </div>
             <div className="text-sm text-gray-500">Objectives</div>
+          </CardContent>
+        </Card>
+        <Card variant="bordered">
+          <CardContent className="text-center py-4">
+            <div className="text-2xl font-bold text-primary-600">{assessments.size}</div>
+            <div className="text-sm text-gray-500">Assessments</div>
           </CardContent>
         </Card>
         <Card variant="bordered">

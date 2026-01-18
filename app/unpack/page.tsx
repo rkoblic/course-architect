@@ -5,7 +5,8 @@ import { useRouter } from 'next/navigation'
 import { Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
 import { FileDropzone, PasteInput, ExtractionProgressDisplay } from '@/components/upload'
-import { useCourseStore, useModuleStore, useKnowledgeGraphStore, useContextStore, useUIStore } from '@/stores'
+import { useCourseStore, useModuleStore, useKnowledgeGraphStore, useContextStore, useUIStore, useAssessmentStore } from '@/stores'
+import { generateAssessmentId } from '@/stores/assessment-store'
 import { parseText } from '@/lib/parsers'
 import {
   demoCourse,
@@ -19,6 +20,7 @@ import {
   demoInstructorPersona,
   demoDisciplineConventions,
   demoPrerequisites,
+  demoAssessments,
   demoSyllabusText,
 } from '@/lib/demo-data'
 
@@ -32,6 +34,7 @@ export default function UnpackStep1() {
   const { setModules } = useModuleStore()
   const { setNodes, setEdges, setMetadata } = useKnowledgeGraphStore()
   const { setAIPolicy, setLearnerProfile, setTeachingApproach, setInstructorPersona, setDisciplineConventions, setPrerequisites } = useContextStore()
+  const { setAssessments } = useAssessmentStore()
   const {
     setExtractionProgress,
     resetExtractionProgress,
@@ -141,6 +144,28 @@ export default function UnpackStep1() {
         edge_count: edgesData.edges?.length || 0,
       })
 
+      // Stage 5: Extract assessments
+      setExtractionProgress({ stage: 'assessments', progress: 90, message: 'Identifying assessments...' })
+
+      const assessmentsResponse = await fetch('/api/extract/assessments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          syllabusText: text,
+          courseTitle: metadata.course?.title,
+        }),
+      })
+
+      if (assessmentsResponse.ok) {
+        const assessmentsData = await assessmentsResponse.json()
+        const assessmentsWithIds = (assessmentsData.assessments || []).map((a: { id?: string }) => ({
+          ...a,
+          id: a.id || generateAssessmentId(),
+        }))
+        setAssessments(assessmentsWithIds)
+      }
+      // Note: assessment extraction failure is non-fatal - user can add manually
+
       // Complete
       setExtractionProgress({ stage: 'complete', progress: 100, message: 'Analysis complete!' })
 
@@ -167,6 +192,7 @@ export default function UnpackStep1() {
     setNodes,
     setEdges,
     setMetadata,
+    setAssessments,
     setExtractionProgress,
     resetExtractionProgress,
     setIsExtracting,
@@ -228,12 +254,14 @@ export default function UnpackStep1() {
     // Fake extraction stages with delays
     const stages = [
       { stage: 'parsing', progress: 10, message: 'Document parsed successfully', delay: 400 },
-      { stage: 'metadata', progress: 25, message: 'Extracting course information...', delay: 600 },
-      { stage: 'metadata', progress: 40, message: 'Found: Introduction to Data Science (DS 101)', delay: 500 },
-      { stage: 'modules', progress: 50, message: 'Structuring learning modules...', delay: 600 },
-      { stage: 'modules', progress: 65, message: 'Identified 7 modules', delay: 400 },
-      { stage: 'knowledge-graph', progress: 75, message: 'Building concept network...', delay: 600 },
-      { stage: 'knowledge-graph', progress: 90, message: 'Mapping 18 concepts and relationships', delay: 500 },
+      { stage: 'metadata', progress: 20, message: 'Extracting course information...', delay: 600 },
+      { stage: 'metadata', progress: 30, message: 'Found: Introduction to Data Science (DS 101)', delay: 500 },
+      { stage: 'modules', progress: 40, message: 'Structuring learning modules...', delay: 600 },
+      { stage: 'modules', progress: 50, message: 'Identified 7 modules', delay: 400 },
+      { stage: 'knowledge-graph', progress: 60, message: 'Building concept network...', delay: 600 },
+      { stage: 'knowledge-graph', progress: 75, message: 'Mapping 18 concepts and relationships', delay: 500 },
+      { stage: 'assessments', progress: 85, message: 'Identifying assessments...', delay: 500 },
+      { stage: 'assessments', progress: 95, message: 'Found 5 assessments', delay: 400 },
       { stage: 'complete', progress: 100, message: 'Analysis complete!', delay: 800 },
     ] as const
 
@@ -255,6 +283,7 @@ export default function UnpackStep1() {
     setInstructorPersona(demoInstructorPersona)
     setDisciplineConventions(demoDisciplineConventions)
     setPrerequisites(demoPrerequisites)
+    setAssessments(demoAssessments)
 
     // Mark step completed and navigate
     markStepCompleted(1)
@@ -279,6 +308,7 @@ export default function UnpackStep1() {
     setInstructorPersona,
     setDisciplineConventions,
     setPrerequisites,
+    setAssessments,
     setExtractionProgress,
     resetExtractionProgress,
     setIsExtracting,

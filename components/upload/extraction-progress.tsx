@@ -8,6 +8,7 @@ const STAGES = [
   { key: 'metadata', label: 'Extracting course metadata' },
   { key: 'modules', label: 'Structuring modules' },
   { key: 'knowledge-graph', label: 'Building knowledge graph' },
+  { key: 'assessments', label: 'Identifying assessments' },
 ] as const
 
 interface ExtractionProgressProps {

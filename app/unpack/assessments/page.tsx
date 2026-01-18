@@ -3,81 +3,88 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Button } from '@/components/ui'
-import { AssessStepNavigation } from '@/components/layout'
+import { StepNavigation } from '@/components/layout'
 import { AssessmentCard, AssessmentForm } from '@/components/assess'
 import {
   useUIStore,
   useAssessmentStore,
   useCourseStore,
+  useModuleStore,
   generateAssessmentId,
 } from '@/stores'
-
 import type { Assessment } from '@/types/schema'
 
-export default function AssessStep1() {
+export default function UnpackStep4() {
   const router = useRouter()
-  const { setAssessCurrentStep } = useUIStore()
-  const { course, syllabusText } = useCourseStore()
+  const { markStepCompleted, setCurrentStep } = useUIStore()
+  const { course, coreCompetency } = useCourseStore()
+  const { modules } = useModuleStore()
   const {
     assessments,
     addAssessment,
     updateAssessment,
     removeAssessment,
     setAssessments,
-    isAuditing,
   } = useAssessmentStore()
 
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
-  const [isExtracting, setIsExtracting] = useState(false)
-  const [extractionError, setExtractionError] = useState<string | null>(null)
+  const [isGenerating, setIsGenerating] = useState(false)
+  const [generationError, setGenerationError] = useState<string | null>(null)
 
   // Set current step on mount
   useEffect(() => {
-    setAssessCurrentStep(1)
-  }, [setAssessCurrentStep])
+    setCurrentStep(4)
+  }, [setCurrentStep])
 
   const assessmentList = Array.from(assessments.values())
 
-  // Handle extract from syllabus
-  const handleExtractAssessments = async () => {
-    // Get syllabus text from the course store (stored during Unpack)
-    if (!syllabusText) {
-      setExtractionError('No syllabus found. Please go through the Unpack flow first, or add assessments manually.')
-      return
-    }
-
-    setIsExtracting(true)
-    setExtractionError(null)
+  // Handle generate assessments from course structure
+  const handleGenerateAssessments = async () => {
+    setIsGenerating(true)
+    setGenerationError(null)
 
     try {
-      const response = await fetch('/api/extract/assessments', {
+      const response = await fetch('/api/generate/assessments', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          syllabusText,
           courseTitle: course.title || 'Course',
+          coreCompetency: coreCompetency?.statement || '',
+          modules: modules.map(m => ({
+            id: m.id,
+            title: m.title,
+            learning_outcome: m.learning_outcome,
+            bloom_level: m.bloom_level,
+          })),
+          existingAssessments: assessmentList.map(a => ({
+            name: a.name,
+            type: a.type,
+            weight: a.weight,
+          })),
         }),
       })
 
       if (!response.ok) {
-        throw new Error('Failed to extract assessments')
+        throw new Error('Failed to generate assessments')
       }
 
       const data = await response.json()
       if (data.assessments && Array.isArray(data.assessments)) {
-        // Assign unique IDs to extracted assessments
-        const assessmentsWithIds = data.assessments.map((a: Partial<Assessment>, index: number) => ({
+        // Assign unique IDs to generated assessments
+        const assessmentsWithIds = data.assessments.map((a: Partial<Assessment>) => ({
           ...a,
           id: a.id || generateAssessmentId(),
         }))
-        setAssessments(assessmentsWithIds)
+        // Merge with existing assessments
+        const combined = [...assessmentList, ...assessmentsWithIds]
+        setAssessments(combined)
       }
     } catch (error) {
-      console.error('Extract assessments error:', error)
-      setExtractionError('Failed to extract assessments. Please try again or add manually.')
+      console.error('Generate assessments error:', error)
+      setGenerationError('Failed to generate assessments. Please try again or add manually.')
     } finally {
-      setIsExtracting(false)
+      setIsGenerating(false)
     }
   }
 
@@ -112,54 +119,41 @@ export default function AssessStep1() {
     }
   }
 
+  const handleSaveAndContinue = () => {
+    markStepCompleted(4)
+    setCurrentStep(5)
+    router.push('/unpack/prerequisites')
+  }
+
   const editingAssessment = editingId ? assessments.get(editingId) : undefined
+
+  // Calculate total weight
+  const totalWeight = assessmentList.reduce((sum, a) => sum + (a.weight || 0), 0)
 
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Assessment Inventory</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Review Assessments</h1>
         <p className="text-gray-600 mt-1">
-          Catalog your course assessments to analyze for AI vulnerability.
+          Review the extracted assessments and add any that were missed. These will carry over to Assess mode.
         </p>
       </div>
 
       {/* Orientation Card */}
-      <Card variant="bordered" className="bg-accent-50 border-accent-200">
-        <CardContent className="py-4">
-          <div className="flex items-start gap-3">
-            <div className="w-8 h-8 rounded-full bg-accent-100 flex items-center justify-center shrink-0">
-              <svg className="w-4 h-4 text-accent-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-              </svg>
-            </div>
-            <div className="text-sm text-gray-700">
-              <p className="font-medium text-gray-900 mb-1">What is this step?</p>
-              <p>
-                List all the assessments in your course - exams, papers, projects, presentations.
-                You can extract them from your syllabus or add them manually.
-                We&apos;ll then analyze each one for AI vulnerability.
-              </p>
-            </div>
+      <div className="bg-blue-50/50 border border-blue-100 rounded-xl px-4 py-3">
+        <div className="flex items-start gap-2">
+          <div className="w-5 h-5 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+            <span className="text-blue-600 text-xs font-medium">?</span>
           </div>
-        </CardContent>
-      </Card>
+          <p className="text-sm text-gray-700">
+            Assessments were extracted from your syllabus during upload. Review them here and link them to modules.
+            If your syllabus didn&apos;t have detailed assessment info, you can <span className="font-medium">generate suggestions</span> based on your course structure.
+          </p>
+        </div>
+      </div>
 
       {/* Actions */}
       <div className="flex items-center gap-3">
-        {assessmentList.length === 0 && (
-          <Button
-            variant="primary"
-            onClick={handleExtractAssessments}
-            isLoading={isExtracting}
-            disabled={isExtracting}
-            className="bg-accent-600 hover:bg-accent-700"
-          >
-            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
-            </svg>
-            Extract from Syllabus
-          </Button>
-        )}
         <Button
           variant="outline"
           onClick={() => {
@@ -170,24 +164,27 @@ export default function AssessStep1() {
           <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
           </svg>
-          Add Manually
+          Add Assessment
         </Button>
-        {assessmentList.length > 0 && (
+        {assessmentList.length < 2 && modules.length > 0 && (
           <Button
-            variant="outline"
-            onClick={handleExtractAssessments}
-            isLoading={isExtracting}
-            disabled={isExtracting}
+            variant="primary"
+            onClick={handleGenerateAssessments}
+            isLoading={isGenerating}
+            disabled={isGenerating}
           >
-            Re-extract from Syllabus
+            <svg className="w-4 h-4 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+            Generate from Course Structure
           </Button>
         )}
       </div>
 
-      {/* Extraction Error */}
-      {extractionError && (
+      {/* Generation Error */}
+      {generationError && (
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg text-red-700 text-sm">
-          {extractionError}
+          {generationError}
         </div>
       )}
 
@@ -229,9 +226,10 @@ export default function AssessStep1() {
                     d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
                   />
                 </svg>
-                <h3 className="text-lg font-medium text-gray-900 mb-2">No assessments yet</h3>
+                <h3 className="text-lg font-medium text-gray-900 mb-2">No assessments found</h3>
                 <p className="text-gray-500 mb-4">
-                  Extract assessments from your syllabus or add them manually to get started.
+                  No assessments were extracted from your syllabus.
+                  Generate suggestions based on your course structure or add them manually.
                 </p>
               </CardContent>
             </Card>
@@ -239,8 +237,9 @@ export default function AssessStep1() {
             <>
               <div className="flex items-center justify-between text-sm text-gray-500 mb-2">
                 <span>{assessmentList.length} {assessmentList.length === 1 ? 'assessment' : 'assessments'}</span>
-                <span>
-                  Total weight: {assessmentList.reduce((sum, a) => sum + a.weight, 0)}%
+                <span className={totalWeight !== 100 ? 'text-amber-600 font-medium' : ''}>
+                  Total weight: {totalWeight}%
+                  {totalWeight !== 100 && ' (should be 100%)'}
                 </span>
               </div>
               {assessmentList.map((assessment) => (
@@ -256,9 +255,10 @@ export default function AssessStep1() {
         </div>
       )}
 
-      <AssessStepNavigation
-        nextDisabled={assessmentList.length === 0 || showForm}
-        onNext={() => router.push('/assess/audit')}
+      <StepNavigation
+        onNext={handleSaveAndContinue}
+        nextDisabled={showForm}
+        nextLabel="Continue to Prerequisites"
       />
     </div>
   )

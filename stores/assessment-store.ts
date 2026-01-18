@@ -54,6 +54,9 @@ interface AssessmentState {
 
   // Reset
   reset: () => void
+
+  // Partial reset - preserve assessments but clear audits and alternatives (for mode transition)
+  clearAlternativesAndAudits: () => void
 }
 
 // Helper to generate assessment ID
@@ -185,6 +188,26 @@ export const useAssessmentStore = create<AssessmentState>()(
           alternatives: new Map(),
           isAuditing: false,
           isGeneratingAlternatives: false,
+        }),
+
+      clearAlternativesAndAudits: () =>
+        set((state) => {
+          // Clear alternatives map
+          const clearedAlternatives = new Map<string, AlternativeAssessment[]>()
+
+          // Remove vulnerability_audit from assessments but keep assessments
+          const clearedAssessments = new Map(state.assessments)
+          clearedAssessments.forEach((assessment, id) => {
+            const { vulnerability_audit, ...rest } = assessment
+            clearedAssessments.set(id, rest as Assessment)
+          })
+
+          return {
+            alternatives: clearedAlternatives,
+            assessments: clearedAssessments,
+            isAuditing: false,
+            isGeneratingAlternatives: false,
+          }
         }),
     }),
     {

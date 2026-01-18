@@ -358,7 +358,7 @@ export default function UnpackStep3() {
   const handleSaveAndContinue = () => {
     markStepCompleted(3)
     setCurrentStep(4)
-    router.push('/unpack/prerequisites')
+    router.push('/unpack/assessments')
   }
 
   return (

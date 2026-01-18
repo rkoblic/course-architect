@@ -25,13 +25,14 @@ app/
   page.tsx              # Home page with mode selection
   layout.tsx            # Root layout
   globals.css           # Tailwind + CSS variables
-  unpack/               # Unpack mode pages (6 steps)
+  unpack/               # Unpack mode pages (7 steps)
     page.tsx            # Step 1: Upload & extract
     competency/         # Step 2: Core competency
     modules/            # Step 3: Edit modules
-    prerequisites/      # Step 4: Map prerequisites (with AI suggestions)
-    context/            # Step 5: AI policy & context
-    export/             # Step 6: Review & export JSON
+    assessments/        # Step 4: Review assessments
+    prerequisites/      # Step 5: Map prerequisites (with AI suggestions)
+    context/            # Step 6: AI policy & context
+    export/             # Step 7: Review & export JSON
   assess/               # Assess mode pages (5 steps)
     layout.tsx          # Assess layout with stepper
     page.tsx            # Step 1: Assessment Inventory
@@ -50,6 +51,8 @@ app/
         edges/          # Edge extraction (step 2, uses node IDs)
     suggest/
       prerequisites/    # AI prerequisite suggestions
+    generate/
+      assessments/      # AI assessment generation from course structure
     assess/
       vulnerability-audit/    # AI vulnerability analysis
       generate-alternatives/  # AI alternative generation
@@ -83,6 +86,7 @@ lib/
     alternative-generation.ts   # Alternative generation prompt
     rubric-generation.ts        # Rubric generation prompt
     assessment-extraction.ts    # Assessment extraction prompt
+    assessment-generation.ts    # Assessment generation from course structure
   utils.ts              # Utility functions (cn for classnames)
   reset-stores.ts       # Store reset functions (resetUnpackStores, resetAssessStores)
 
@@ -169,10 +173,15 @@ interface RubricCriterion {
 }
 ```
 
-### UI Store Assess Mode State (stores/ui-store.ts)
+### UI Store State (stores/ui-store.ts)
 ```typescript
+type UnpackStep = 1 | 2 | 3 | 4 | 5 | 6 | 7  // 7 steps in Unpack mode
 type AssessStep = 1 | 2 | 3 | 4 | 5
 type AppMode = 'unpack' | 'assess'
+
+// Unpack-specific state:
+currentStep: UnpackStep
+stepsCompleted: Record<UnpackStep, boolean>
 
 // Assess-specific state:
 currentMode: AppMode
@@ -180,6 +189,7 @@ assessCurrentStep: AssessStep
 assessStepsCompleted: Record<AssessStep, boolean>
 
 // Constants:
+STEP_LABELS: Record<UnpackStep, { title: string; description: string }>
 ASSESS_STEP_LABELS: Record<AssessStep, { title: string; description: string }>
 ```
 
@@ -227,14 +237,15 @@ npx tsc --noEmit # Type check without building (run before commits!)
 2. **Progressive Disclosure**: Start simple, reveal complexity when needed
 3. **Dual Legibility**: Output readable by both humans and machines
 
-## Unpack Flow (6 Steps)
+## Unpack Flow (7 Steps)
 
 1. **Upload** (`/unpack`): Upload DOCX/TXT or paste syllabus text
 2. **Competency** (`/unpack/competency`): Define core competency
 3. **Modules** (`/unpack/modules`): Review and edit learning modules
-4. **Prerequisites** (`/unpack/prerequisites`): Map required skills/knowledge (has AI suggestions)
-5. **Context** (`/unpack/context`): Set AI policy and learner profile
-6. **Export** (`/unpack/export`): Review and download JSON
+4. **Assessments** (`/unpack/assessments`): Review extracted assessments, generate if needed
+5. **Prerequisites** (`/unpack/prerequisites`): Map required skills/knowledge (has AI suggestions)
+6. **Context** (`/unpack/context`): Set AI policy and learner profile
+7. **Export** (`/unpack/export`): Review and download JSON
 
 ## Assess Flow (5 Steps)
 
@@ -263,15 +274,43 @@ npx tsc --noEmit # Type check without building (run before commits!)
 ## Current State
 
 - Home page with Unpack/Assess mode selection complete (with logo)
-- Full Unpack flow implemented (all 6 steps)
+- Full Unpack flow implemented (all 7 steps, including assessments)
 - Full Assess flow implemented (all 5 steps)
-- AI extraction pipeline for metadata, modules, and knowledge graph
-- AI suggestions for prerequisites (auto-triggered on step 4)
+- AI extraction pipeline for metadata, modules, knowledge graph, and assessments
+- AI suggestions for prerequisites (auto-triggered on step 5)
+- AI assessment generation from course structure
 - AI vulnerability audit, alternative generation, and rubric generation
+- Assessments extracted in Unpack flow carry over to Assess mode
 - Export pages with JSON download and interactive knowledge graph visualization
 - DOCX parsing via server-side API (PDF temporarily disabled)
 
 ## Recent Changes (January 2026)
+
+### Assessment Integration in Unpack Flow
+Integrated assessment extraction into the Unpack pipeline so assessments carry over automatically to Assess mode.
+
+**Unpack Flow Changes (6 → 7 steps):**
+- Added new Step 4: Assessments (`/unpack/assessments`)
+- Steps 4-6 renumbered to 5-7 (Prerequisites, Context, Export)
+- Assessment extraction added to upload pipeline after knowledge graph
+- "Generate from Course Structure" option for syllabi with thin assessment data
+
+**New Files:**
+- `app/unpack/assessments/page.tsx`: New Assessments step UI
+- `app/api/generate/assessments/route.ts`: AI assessment generation endpoint
+- `lib/prompts/assessment-generation.ts`: Generation prompt for AI-aligned assessments
+
+**Store Changes:**
+- `ui-store.ts`: UnpackStep now 1-7, STEP_LABELS updated
+- `assessment-store.ts`: Added `clearAlternativesAndAudits()` method for mode transition
+- `reset-stores.ts`: `resetAssessStores()` now preserves assessments, only clears audits/alternatives
+
+**Bug Fixes:**
+- Fixed syllabus text bug in `/assess/page.tsx` (now uses store instead of localStorage)
+
+**Export Enhancements:**
+- Export page now shows assessment count in summary stats
+- JSON export includes assessments array
 
 ### Assess Mode Implementation (Full 5-Step Flow)
 Complete implementation of Assess mode for auditing assessments and generating AI-resistant alternatives.

@@ -20,7 +20,7 @@ interface SuggestedKnowledge {
   rationale: string
 }
 
-export default function UnpackStep4() {
+export default function UnpackStep5() {
   const router = useRouter()
   const { prerequisites, updatePrerequisites, setPrerequisites } = useContextStore()
   const { markStepCompleted, setCurrentStep } = useUIStore()
@@ -42,7 +42,7 @@ export default function UnpackStep4() {
 
   // Set current step on mount
   useEffect(() => {
-    setCurrentStep(4)
+    setCurrentStep(5)
   }, [setCurrentStep])
 
   // Migrate old prerequisites from context-store to knowledge graph on mount
@@ -383,8 +383,8 @@ export default function UnpackStep4() {
   }
 
   const handleSaveAndContinue = () => {
-    markStepCompleted(4)
-    setCurrentStep(5)
+    markStepCompleted(5)
+    setCurrentStep(6)
     router.push('/unpack/context')
   }
 
