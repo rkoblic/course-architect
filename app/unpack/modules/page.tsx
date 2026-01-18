@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Badge, Button, Select, Input, Textarea } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
-import { useModuleStore, useUIStore, generateModuleId, useKnowledgeGraphStore, generateNodeId } from '@/stores'
-import { BLOOM_LEVELS, AI_PARTNERSHIP_MODES, NODE_TYPES, type BloomLevel, type AIPartnershipMode, type Module, type KnowledgeNode, type NodeType, type NodeDifficulty } from '@/types/schema'
+import { useModuleStore, useUIStore, generateModuleId, useKnowledgeGraphStore, generateNodeId, generateEdgeId } from '@/stores'
+import { BLOOM_LEVELS, AI_PARTNERSHIP_MODES, NODE_TYPES, EDGE_RELATIONSHIPS, EDGE_STRENGTHS, type BloomLevel, type AIPartnershipMode, type Module, type KnowledgeNode, type KnowledgeEdge, type NodeType, type NodeDifficulty, type EdgeRelationship, type EdgeStrength } from '@/types/schema'
 import { cn } from '@/lib/utils'
 
 // Types for edit state
@@ -18,6 +18,15 @@ interface EditingNode {
   ai_notes: string
   parent_module_id: string
   difficulty: NodeDifficulty
+}
+
+interface EditingEdge {
+  id: string
+  source: string
+  target: string
+  relationship: EdgeRelationship
+  strength: EdgeStrength
+  rationale: string
 }
 
 // Internal node types for filtering (excludes external_* types)
@@ -161,7 +170,7 @@ export default function UnpackStep3() {
   const router = useRouter()
   const { modules, updateModule, removeModule, addModule, reorderModules } = useModuleStore()
   const { markStepCompleted, setCurrentStep } = useUIStore()
-  const { nodes, edges, metadata, getNodesByModule, addNode, updateNode, removeNode } = useKnowledgeGraphStore()
+  const { nodes, edges, metadata, getNodesByModule, addNode, updateNode, removeNode, addEdge, updateEdge, removeEdge } = useKnowledgeGraphStore()
   const [expandedId, setExpandedId] = useState<string | null>(null)
   const [conceptsExpanded, setConceptsExpanded] = useState(false)
   const [legendExpanded, setLegendExpanded] = useState(false)
@@ -170,6 +179,11 @@ export default function UnpackStep3() {
   const [editingNode, setEditingNode] = useState<EditingNode | null>(null)
   const [isAddingNode, setIsAddingNode] = useState(false)
   const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null)
+
+  // CRUD state for relationships (edges)
+  const [editingEdge, setEditingEdge] = useState<EditingEdge | null>(null)
+  const [isAddingEdge, setIsAddingEdge] = useState(false)
+  const [deleteEdgeConfirmId, setDeleteEdgeConfirmId] = useState<string | null>(null)
 
   // Set current step on mount
   useEffect(() => {
@@ -255,6 +269,76 @@ export default function UnpackStep3() {
   const handleDeleteNode = (nodeId: string) => {
     removeNode(nodeId)
     setDeleteConfirmId(null)
+  }
+
+  // CRUD handlers for relationships (edges)
+  const handleStartAddEdge = () => {
+    setIsAddingEdge(true)
+    const nodeArray = Array.from(nodes.values())
+    setEditingEdge({
+      id: '',
+      source: nodeArray[0]?.id || '',
+      target: nodeArray[1]?.id || nodeArray[0]?.id || '',
+      relationship: 'prerequisite_of',
+      strength: 'required',
+      rationale: '',
+    })
+  }
+
+  const handleStartEditEdge = (edge: KnowledgeEdge) => {
+    setIsAddingEdge(false)
+    setEditingEdge({
+      id: edge.id,
+      source: edge.source,
+      target: edge.target,
+      relationship: edge.relationship,
+      strength: edge.strength || 'required',
+      rationale: edge.rationale || '',
+    })
+  }
+
+  const handleSaveEdge = () => {
+    if (!editingEdge || !editingEdge.source || !editingEdge.target) return
+    if (editingEdge.source === editingEdge.target) return // Can't connect to self
+
+    if (isAddingEdge) {
+      // Create new edge
+      const newEdge: KnowledgeEdge = {
+        id: generateEdgeId(),
+        source: editingEdge.source,
+        target: editingEdge.target,
+        relationship: editingEdge.relationship,
+        strength: editingEdge.strength,
+        rationale: editingEdge.rationale.trim() || undefined,
+        source_type: 'faculty_defined',
+        confirmed: true,
+      }
+      addEdge(newEdge)
+    } else {
+      // Update existing edge
+      updateEdge(editingEdge.id, {
+        source: editingEdge.source,
+        target: editingEdge.target,
+        relationship: editingEdge.relationship,
+        strength: editingEdge.strength,
+        rationale: editingEdge.rationale.trim() || undefined,
+        source_type: 'faculty_defined',
+        confirmed: true,
+      })
+    }
+
+    setEditingEdge(null)
+    setIsAddingEdge(false)
+  }
+
+  const handleCancelEditEdge = () => {
+    setEditingEdge(null)
+    setIsAddingEdge(false)
+  }
+
+  const handleDeleteEdge = (edgeId: string) => {
+    removeEdge(edgeId)
+    setDeleteEdgeConfirmId(null)
   }
 
   const handleAddModule = () => {
@@ -688,28 +772,185 @@ export default function UnpackStep3() {
               })()}
 
               {/* Relationships */}
-              {edges.size > 0 && (
-                <div className="space-y-2 pt-4 border-t border-gray-100">
+              <div className="space-y-3 pt-4 border-t border-gray-100">
+                <div className="flex items-center justify-between">
                   <h4 className="text-sm font-medium text-gray-700">
                     Relationships ({edges.size})
                   </h4>
-                  <div className="space-y-1 max-h-48 overflow-y-auto">
+                  {nodes.size >= 2 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleStartAddEdge}
+                    >
+                      <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+                      </svg>
+                      Add Relationship
+                    </Button>
+                  )}
+                </div>
+
+                {/* Edge Add/Edit Form */}
+                {editingEdge && (
+                  <div className="bg-green-50 border border-green-200 rounded-lg p-4 space-y-3">
+                    <h4 className="text-sm font-medium text-green-900">
+                      {isAddingEdge ? 'Add New Relationship' : 'Edit Relationship'}
+                    </h4>
+
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-700">From (Source)</label>
+                        <Select
+                          value={editingEdge.source}
+                          onChange={(value) => setEditingEdge({ ...editingEdge, source: value })}
+                          options={Array.from(nodes.values()).map(n => ({
+                            value: n.id,
+                            label: n.label
+                          }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-700">Relationship</label>
+                        <Select
+                          value={editingEdge.relationship}
+                          onChange={(value) => setEditingEdge({ ...editingEdge, relationship: value as EdgeRelationship })}
+                          options={EDGE_RELATIONSHIPS.map(r => ({ value: r.value, label: r.label }))}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-700">To (Target)</label>
+                        <Select
+                          value={editingEdge.target}
+                          onChange={(value) => setEditingEdge({ ...editingEdge, target: value })}
+                          options={Array.from(nodes.values())
+                            .filter(n => n.id !== editingEdge.source)
+                            .map(n => ({ value: n.id, label: n.label }))}
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-3">
+                      <div>
+                        <label className="text-xs font-medium text-gray-700">Strength</label>
+                        <Select
+                          value={editingEdge.strength}
+                          onChange={(value) => setEditingEdge({ ...editingEdge, strength: value as EdgeStrength })}
+                          options={EDGE_STRENGTHS}
+                          className="mt-1"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-xs font-medium text-gray-700">Rationale (optional)</label>
+                        <Input
+                          value={editingEdge.rationale}
+                          onChange={(e) => setEditingEdge({ ...editingEdge, rationale: e.target.value })}
+                          placeholder="Why this relationship exists"
+                          className="mt-1"
+                        />
+                      </div>
+                    </div>
+
+                    {editingEdge.source === editingEdge.target && (
+                      <p className="text-xs text-red-600">Source and target must be different concepts.</p>
+                    )}
+
+                    <div className="flex justify-end gap-2 pt-2">
+                      <Button variant="outline" size="sm" onClick={handleCancelEditEdge}>
+                        Cancel
+                      </Button>
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={handleSaveEdge}
+                        disabled={!editingEdge.source || !editingEdge.target || editingEdge.source === editingEdge.target}
+                      >
+                        {isAddingEdge ? 'Add Relationship' : 'Save Changes'}
+                      </Button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Relationship List */}
+                {edges.size > 0 ? (
+                  <div className="space-y-1 max-h-60 overflow-y-auto">
                     {Array.from(edges.values()).map((edge) => {
                       const sourceNode = nodes.get(edge.source)
                       const targetNode = nodes.get(edge.target)
+                      const relationshipInfo = EDGE_RELATIONSHIPS.find(r => r.value === edge.relationship)
                       return (
-                        <div key={edge.id} className="flex items-center gap-2 text-sm text-gray-600">
+                        <div
+                          key={edge.id}
+                          className={cn(
+                            'flex items-center gap-2 text-sm p-2 rounded-lg -ml-2',
+                            editingEdge?.id === edge.id ? 'bg-green-50' : 'hover:bg-gray-50'
+                          )}
+                        >
                           <span className="text-gray-400">•</span>
-                          <span className="font-medium">{sourceNode?.label || edge.source}</span>
-                          <span className="text-gray-400">→</span>
-                          <span className="font-medium">{targetNode?.label || edge.target}</span>
-                          <Badge variant="secondary" size="sm">{edge.relationship.replace(/_/g, ' ')}</Badge>
+                          <div className="flex-1 flex items-center gap-2 flex-wrap min-w-0">
+                            <span className="font-medium text-gray-900">{sourceNode?.label || edge.source}</span>
+                            <span className="text-gray-400">→</span>
+                            <span className="font-medium text-gray-900">{targetNode?.label || edge.target}</span>
+                            <Badge variant="secondary" size="sm">{relationshipInfo?.label || edge.relationship.replace(/_/g, ' ')}</Badge>
+                            {edge.strength && edge.strength !== 'required' && (
+                              <span className="text-xs text-gray-400">({edge.strength})</span>
+                            )}
+                            {edge.confirmed && (
+                              <svg className="w-3.5 h-3.5 text-green-500" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                              </svg>
+                            )}
+                          </div>
+                          <div className="flex items-center gap-1 flex-shrink-0">
+                            <button
+                              onClick={() => handleStartEditEdge(edge)}
+                              className="p-1 text-gray-400 hover:text-primary-600 rounded"
+                              title="Edit"
+                            >
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                              </svg>
+                            </button>
+                            {deleteEdgeConfirmId === edge.id ? (
+                              <div className="flex items-center gap-1 bg-red-50 rounded px-1">
+                                <button
+                                  onClick={() => handleDeleteEdge(edge.id)}
+                                  className="text-xs text-red-600 font-medium px-1 py-0.5"
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  onClick={() => setDeleteEdgeConfirmId(null)}
+                                  className="text-xs text-gray-500 px-1 py-0.5"
+                                >
+                                  Cancel
+                                </button>
+                              </div>
+                            ) : (
+                              <button
+                                onClick={() => setDeleteEdgeConfirmId(edge.id)}
+                                className="p-1 text-gray-400 hover:text-red-600 rounded"
+                                title="Delete"
+                              >
+                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            )}
+                          </div>
                         </div>
                       )
                     })}
                   </div>
-                </div>
-              )}
+                ) : nodes.size >= 2 ? (
+                  <p className="text-sm text-gray-400 italic py-2">No relationships yet. Click "Add Relationship" to create one.</p>
+                ) : nodes.size > 0 ? (
+                  <p className="text-sm text-gray-400 italic py-2">Add at least 2 concepts to create relationships.</p>
+                ) : null}
+              </div>
 
               {/* Empty state */}
               {nodes.size === 0 && (

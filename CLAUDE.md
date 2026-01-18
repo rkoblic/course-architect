@@ -192,8 +192,25 @@ npx tsc --noEmit # Type check without building (run before commits!)
 - **Secondary teaching approaches**: Context page now has checkboxes for selecting secondary teaching approaches (in addition to primary)
 - **Prerequisites on export**: Export page now correctly displays prerequisites from knowledge graph external nodes (not just context store)
 
+### CRUD Editing for Knowledge Graph Relationships
+- **Add relationships**: "Add Relationship" button (requires 2+ concepts)
+- **Edit relationships**: Click edit icon to modify source, target, relationship type, strength, rationale
+- **Delete relationships**: Delete button with confirmation dialog
+- **Form validation**: Prevents self-referencing edges (source ≠ target)
+- **Visual feedback**: Shows relationship type badge, strength indicator, confirmed checkmark
+- **New constant**: Added `EDGE_STRENGTHS` to `types/schema.ts`
+
+### Context Page Redesign (Collapsible Sections)
+- **All 5 sections collapsible**: AI Policy, Learner Profile, Teaching Approach, Instructor Persona, Discipline Conventions
+- **Removed "Advanced Options"**: Instructor Persona and Discipline Conventions now at same level as other sections
+- **Default state**: AI Policy expanded, all others collapsed
+- **Completion indicators**: Green checkmark when section has data
+- **Summary previews**: Collapsed headers show current values (e.g., "Discussion-Based + 2 more")
+- **Instructor Persona redesign**: Inline chip-style selects on one row (`[Formality ▼] [Encouragement ▼] [Feedback ▼]`)
+
 ### UI Improvements
 - **Home page logo**: Added Course Architect logo to home page header
+- **Upload page simplified**: Removed "What happens next?" box, added reassurance text to header
 - **Competency page redesign**:
   - Replaced collapsible FAQ with always-visible orientation card (question mark icon + inline text)
   - Course Information now uses compact inline chips (Code, Discipline, Level, Credits)

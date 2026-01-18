@@ -527,3 +527,9 @@ export const EDGE_RELATIONSHIPS: { value: EdgeRelationship; label: string; descr
   { value: 'assumed_by', label: 'Assumed By', description: 'External node is assumed by internal node' },
   { value: 'entry_point_for', label: 'Entry Point For', description: 'External node leads to this entry concept' },
 ]
+
+export const EDGE_STRENGTHS: { value: EdgeStrength; label: string }[] = [
+  { value: 'required', label: 'Required' },
+  { value: 'recommended', label: 'Recommended' },
+  { value: 'optional', label: 'Optional' },
+]
