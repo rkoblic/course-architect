@@ -3,6 +3,7 @@
 import { useState, useMemo, useEffect } from 'react'
 import { Card, CardContent, Button, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
+import { KnowledgeGraphViewer } from '@/components/knowledge-graph/KnowledgeGraphViewer'
 import {
   useCourseStore,
   useModuleStore,
@@ -462,11 +463,12 @@ export default function UnpackStep6() {
         <CardContent>
           <Tabs
             defaultValue={exportViewMode}
-            onValueChange={(v) => setExportViewMode(v as 'instructor' | 'json')}
+            onValueChange={(v) => setExportViewMode(v as 'instructor' | 'json' | 'graph')}
           >
             <div className="flex items-center justify-between mb-4">
               <TabsList>
                 <TabsTrigger value="instructor">Instructor View</TabsTrigger>
+                <TabsTrigger value="graph">Graph View</TabsTrigger>
                 <TabsTrigger value="json">JSON Output</TabsTrigger>
               </TabsList>
 
@@ -794,6 +796,10 @@ export default function UnpackStep6() {
                   </div>
                 </CollapsibleSection>
               </div>
+            </TabsContent>
+
+            <TabsContent value="graph">
+              <KnowledgeGraphViewer nodes={nodes} edges={edges} />
             </TabsContent>
 
             <TabsContent value="json">

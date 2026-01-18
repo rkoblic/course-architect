@@ -27,7 +27,7 @@ interface UIState {
   error: string | null
 
   // View preferences
-  exportViewMode: 'instructor' | 'json'
+  exportViewMode: 'instructor' | 'json' | 'graph'
 
   // Session info
   sessionStartedAt: string | null
@@ -49,7 +49,7 @@ interface UIState {
   setError: (error: string | null) => void
   clearError: () => void
 
-  setExportViewMode: (mode: 'instructor' | 'json') => void
+  setExportViewMode: (mode: 'instructor' | 'json' | 'graph') => void
 
   startSession: () => void
   updateLastModified: () => void
