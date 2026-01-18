@@ -589,66 +589,77 @@ export default function UnpackStep6() {
                   expanded={expandedSections.prerequisites}
                   onToggle={() => toggleSection('prerequisites')}
                 >
-                  <div className="space-y-4">
-                    {prerequisites.courses && prerequisites.courses.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Prerequisite Courses</h4>
-                        <div className="space-y-2">
-                          {prerequisites.courses.map((course, i) => (
-                            <div key={i} className="bg-gray-50 rounded-lg p-3">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{course.code}</span>
-                                {course.title && <span className="text-gray-600">- {course.title}</span>}
-                                <Badge>{course.required ? 'Required' : 'Recommended'}</Badge>
-                              </div>
-                              {course.concepts_assumed && course.concepts_assumed.length > 0 && (
-                                <div className="mt-2">
-                                  <span className="text-xs text-gray-500">Concepts assumed: </span>
-                                  <div className="flex flex-wrap gap-1 mt-1">
-                                    {course.concepts_assumed.map((c, j) => (
-                                      <Badge key={j}>{c}</Badge>
-                                    ))}
+                  {(() => {
+                    // Get prerequisites from external nodes first, fall back to context store
+                    const graphPrereqs = exportAsPrerequisites()
+                    const displayPrereqs = {
+                      courses: graphPrereqs.courses?.length ? graphPrereqs.courses : prerequisites.courses,
+                      skills: graphPrereqs.skills?.length ? graphPrereqs.skills : prerequisites.skills,
+                      knowledge: graphPrereqs.knowledge?.length ? graphPrereqs.knowledge : prerequisites.knowledge,
+                    }
+                    return (
+                      <div className="space-y-4">
+                        {displayPrereqs.courses && displayPrereqs.courses.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Prerequisite Courses</h4>
+                            <div className="space-y-2">
+                              {displayPrereqs.courses.map((course, i) => (
+                                <div key={i} className="bg-gray-50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{course.code}</span>
+                                    {course.title && <span className="text-gray-600">- {course.title}</span>}
+                                    <Badge>{course.required ? 'Required' : 'Recommended'}</Badge>
                                   </div>
+                                  {course.concepts_assumed && course.concepts_assumed.length > 0 && (
+                                    <div className="mt-2">
+                                      <span className="text-xs text-gray-500">Concepts assumed: </span>
+                                      <div className="flex flex-wrap gap-1 mt-1">
+                                        {course.concepts_assumed.map((c, j) => (
+                                          <Badge key={j}>{c}</Badge>
+                                        ))}
+                                      </div>
+                                    </div>
+                                  )}
                                 </div>
-                              )}
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {prerequisites.skills && prerequisites.skills.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h4>
-                        <div className="space-y-2">
-                          {prerequisites.skills.map((skill, i) => (
-                            <div key={i} className="bg-gray-50 rounded-lg p-2 flex items-center gap-2">
-                              <span>{skill.skill}</span>
-                              {skill.proficiency_level && <Badge>{skill.proficiency_level}</Badge>}
-                              <Badge>{skill.required ? 'Required' : 'Recommended'}</Badge>
+                          </div>
+                        )}
+                        {displayPrereqs.skills && displayPrereqs.skills.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Required Skills</h4>
+                            <div className="space-y-2">
+                              {displayPrereqs.skills.map((skill, i) => (
+                                <div key={i} className="bg-gray-50 rounded-lg p-2 flex items-center gap-2">
+                                  <span>{skill.skill}</span>
+                                  {skill.proficiency_level && <Badge>{skill.proficiency_level}</Badge>}
+                                  <Badge>{skill.required ? 'Required' : 'Recommended'}</Badge>
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-                    {prerequisites.knowledge && prerequisites.knowledge.length > 0 && (
-                      <div>
-                        <h4 className="text-sm font-medium text-gray-700 mb-2">Background Knowledge</h4>
-                        <div className="space-y-2">
-                          {prerequisites.knowledge.map((knowledge, i) => (
-                            <div key={i} className="bg-gray-50 rounded-lg p-3">
-                              <div className="flex items-center gap-2">
-                                <span className="font-medium">{knowledge.area}</span>
-                                <Badge>{knowledge.required ? 'Required' : 'Recommended'}</Badge>
-                              </div>
-                              {knowledge.description && (
-                                <p className="text-sm text-gray-600 mt-1">{knowledge.description}</p>
-                              )}
+                          </div>
+                        )}
+                        {displayPrereqs.knowledge && displayPrereqs.knowledge.length > 0 && (
+                          <div>
+                            <h4 className="text-sm font-medium text-gray-700 mb-2">Background Knowledge</h4>
+                            <div className="space-y-2">
+                              {displayPrereqs.knowledge.map((knowledge, i) => (
+                                <div key={i} className="bg-gray-50 rounded-lg p-3">
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-medium">{knowledge.area}</span>
+                                    <Badge>{knowledge.required ? 'Required' : 'Recommended'}</Badge>
+                                  </div>
+                                  {knowledge.description && (
+                                    <p className="text-sm text-gray-600 mt-1">{knowledge.description}</p>
+                                  )}
+                                </div>
+                              ))}
                             </div>
-                          ))}
-                        </div>
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
+                    )
+                  })()}
                 </CollapsibleSection>
 
                 {/* 5. Context: Learner & Teaching */}

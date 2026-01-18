@@ -189,6 +189,31 @@ export default function UnpackStep5() {
             </div>
 
             <div>
+              <label className="text-sm font-medium text-gray-700">Secondary Approaches (optional)</label>
+              <p className="text-xs text-gray-500 mb-2">Select any additional teaching methods you use</p>
+              <div className="flex flex-wrap gap-3 mt-1">
+                {TEACHING_APPROACHES.filter(a => a.value !== teachingApproach.primary).map((approach) => (
+                  <label key={approach.value} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={teachingApproach.secondary?.includes(approach.value) || false}
+                      onChange={(e) => {
+                        const current = teachingApproach.secondary || []
+                        if (e.target.checked) {
+                          updateTeachingApproach({ secondary: [...current, approach.value] })
+                        } else {
+                          updateTeachingApproach({ secondary: current.filter(v => v !== approach.value) })
+                        }
+                      }}
+                      className="rounded border-gray-300"
+                    />
+                    {approach.label}
+                  </label>
+                ))}
+              </div>
+            </div>
+
+            <div>
               <label className="text-sm font-medium text-gray-700">Teaching Philosophy</label>
               <Textarea
                 value={teachingApproach.philosophy || ''}

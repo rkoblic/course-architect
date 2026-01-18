@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useEffect, useMemo } from 'react'
+import { useState, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { Card, CardContent, Badge, Button, Input } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
@@ -38,6 +38,7 @@ export default function UnpackStep4() {
 
   const [isLoadingSuggestions, setIsLoadingSuggestions] = useState(false)
   const [hasMigrated, setHasMigrated] = useState(false)
+  const hasAutoTriggered = useRef(false)
 
   // Set current step on mount
   useEffect(() => {
@@ -156,6 +157,22 @@ export default function UnpackStep4() {
       setIsLoadingSuggestions(false)
     }
   }, [syllabusText, course.title, course.discipline])
+
+  // Auto-trigger AI suggestions when user arrives with syllabus but no prerequisites
+  useEffect(() => {
+    if (
+      syllabusText &&
+      externalNodes.size === 0 &&
+      suggestedSkills.length === 0 &&
+      suggestedKnowledge.length === 0 &&
+      !isLoadingSuggestions &&
+      !hasAutoTriggered.current &&
+      hasMigrated
+    ) {
+      hasAutoTriggered.current = true
+      fetchSuggestions()
+    }
+  }, [syllabusText, externalNodes.size, suggestedSkills.length, suggestedKnowledge.length, isLoadingSuggestions, fetchSuggestions, hasMigrated])
 
   // Helper to create an external node and link it to entry point
   const createExternalNodeWithEdge = (node: KnowledgeNode) => {

@@ -34,6 +34,37 @@ export default function UnpackStep2() {
         </p>
       </div>
 
+      {/* Why This Matters - moved to top for context */}
+      <details className="group bg-gray-50 rounded-xl p-4">
+        <summary className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-700 hover:text-gray-900">
+          <svg
+            className="w-4 h-4 transform transition-transform group-open:rotate-90"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+          </svg>
+          Why define a core competency?
+        </summary>
+        <div className="mt-3 pl-6 text-sm text-gray-600 space-y-2">
+          <p>
+            The core competency is the central &quot;through-line&quot; of your course - the one thing you most want students to be able to do when they finish.
+          </p>
+          <p>
+            This helps AI tutors understand the big picture and ensures that every module and assessment connects back to this central goal.
+          </p>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-4">
+            {COMPETENCY_TYPES.map((type) => (
+              <div key={type.value} className="bg-white rounded-lg p-3 border border-gray-200">
+                <p className="font-medium text-gray-900 text-sm">{type.label}</p>
+                <p className="text-xs text-gray-500">{type.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </details>
+
       {/* Course Metadata Summary */}
       <Card variant="bordered">
         <CardContent>
@@ -161,37 +192,6 @@ export default function UnpackStep2() {
           </div>
         </CardContent>
       </Card>
-
-      {/* Why This Matters */}
-      <details className="group">
-        <summary className="flex items-center gap-2 cursor-pointer text-sm text-gray-600 hover:text-gray-900">
-          <svg
-            className="w-4 h-4 transform transition-transform group-open:rotate-90"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
-          </svg>
-          Why define a core competency?
-        </summary>
-        <div className="mt-3 pl-6 text-sm text-gray-600 space-y-2">
-          <p>
-            The core competency is the central &quot;through-line&quot; of your course - the one thing you most want students to be able to do when they finish.
-          </p>
-          <p>
-            This helps AI tutors understand the big picture and ensures that every module and assessment connects back to this central goal.
-          </p>
-          <div className="grid grid-cols-2 gap-3 mt-4">
-            {COMPETENCY_TYPES.map((type) => (
-              <div key={type.value} className="bg-gray-50 rounded-lg p-3">
-                <p className="font-medium text-gray-900">{type.label}</p>
-                <p className="text-xs text-gray-500">{type.description}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </details>
 
       <StepNavigation
         onNext={handleSaveAndContinue}

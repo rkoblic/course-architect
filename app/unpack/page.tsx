@@ -6,7 +6,7 @@ import { Card, CardContent, Tabs, TabsList, TabsTrigger, TabsContent } from '@/c
 import { StepNavigation } from '@/components/layout'
 import { FileDropzone, PasteInput, ExtractionProgressDisplay } from '@/components/upload'
 import { useCourseStore, useModuleStore, useKnowledgeGraphStore, useContextStore, useUIStore } from '@/stores'
-import { parseFile, parseText } from '@/lib/parsers'
+import { parseText } from '@/lib/parsers'
 import {
   demoCourse,
   demoCoreCompetency,
@@ -157,11 +157,31 @@ export default function UnpackStep1() {
       setExtractionProgress({ stage: 'parsing', progress: 5, message: 'Parsing document...' })
       setIsExtracting(true)
 
-      const result = await parseFile(file)
+      // Use server-side parsing for better reliability
+      const formData = new FormData()
+      formData.append('file', file)
+
+      const parseResponse = await fetch('/api/parse', {
+        method: 'POST',
+        body: formData,
+      })
+
+      if (!parseResponse.ok) {
+        const errorData = await parseResponse.json()
+        throw new Error(errorData.error || 'Failed to parse file')
+      }
+
+      const result = await parseResponse.json()
       await processContent(result.text, file.name)
     } catch (error) {
       console.error('File parse error:', error)
-      setError(error instanceof Error ? error.message : 'Failed to parse file')
+      const errorMessage = error instanceof Error ? error.message : 'Failed to parse file'
+      // Add helpful message for DOCX issues
+      if (errorMessage.includes('body element') || errorMessage.includes('docx')) {
+        setError('Could not parse the file. If this is a .doc file (old Word format), please save it as .docx first, or copy and paste the text directly.')
+      } else {
+        setError(errorMessage)
+      }
       setIsExtracting(false)
       resetExtractionProgress()
     }

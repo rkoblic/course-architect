@@ -160,13 +160,37 @@ npx tsc --noEmit # Type check without building (run before commits!)
 
 ## Current State
 
-- Home page with Unpack/Assess mode selection complete
+- Home page with Unpack/Assess mode selection complete (with logo)
 - Full Unpack flow implemented (all 6 steps)
 - AI extraction pipeline for metadata, modules, and knowledge graph
-- AI suggestions for prerequisites
-- Export page with JSON download
-- PDF parsing temporarily disabled (use DOCX or paste text)
+- AI suggestions for prerequisites (auto-triggered on step 4)
+- Export page with JSON download and interactive knowledge graph visualization
+- DOCX parsing via server-side API (PDF temporarily disabled)
 - Assess mode not started (shows "Coming Soon")
+
+## Recent Changes (January 2026)
+
+### Feature Parity: Demo vs Real Flow
+- **Auto-trigger AI suggestions**: Prerequisites page now automatically fetches AI suggestions when user arrives with syllabus but no prerequisites
+- **Secondary teaching approaches**: Context page now has checkboxes for selecting secondary teaching approaches (in addition to primary)
+- **Prerequisites on export**: Export page now correctly displays prerequisites from knowledge graph external nodes (not just context store)
+
+### UI Improvements
+- **Home page logo**: Added Course Architect logo to home page header
+- **Competency page**: Moved "Why define a core competency?" help section to top of page for better discoverability
+
+### Bug Fixes
+- **DOCX parsing**: Fixed server-side parsing to use `Buffer` instead of `ArrayBuffer` (mammoth requirement in Node.js)
+
+### Knowledge Graph Extraction Enhancements
+Enhanced prompt in `lib/prompts/knowledge-graph-extraction.ts`:
+- Increased extraction target to 4-7 concepts per module
+- Added `is_entry_point` field for foundational concepts
+- Required `keywords` (3-5 terms) for every node
+- Required `ai_notes` for difficult concepts
+- Better misconception extraction (at least 1 per threshold concept)
+- Clearer confidence scoring ranges (0.90-1.0, 0.75-0.89, 0.60-0.74)
+- Emphasis on cross-module thematic connections
 
 ## Environment
 

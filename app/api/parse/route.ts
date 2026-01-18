@@ -38,18 +38,35 @@ export async function POST(request: NextRequest) {
 
     // For DOCX files, use mammoth
     if (fileName.endsWith('.docx') || fileName.endsWith('.doc')) {
-      const mammoth = await import('mammoth')
-      const arrayBuffer = await file.arrayBuffer()
-      const result = await mammoth.extractRawText({ arrayBuffer })
+      try {
+        const mammoth = await import('mammoth')
+        const arrayBuffer = await file.arrayBuffer()
+        // mammoth in Node.js needs a Buffer, not ArrayBuffer
+        const buffer = Buffer.from(arrayBuffer)
+        const result = await mammoth.extractRawText({ buffer })
 
-      const extractedText = result.value
-      const wordCount = extractedText.split(/\s+/).filter(Boolean).length
+        const extractedText = result.value
+        const wordCount = extractedText.split(/\s+/).filter(Boolean).length
 
-      return NextResponse.json({
-        text: extractedText,
-        wordCount,
-        format: 'docx',
-      })
+        return NextResponse.json({
+          text: extractedText,
+          wordCount,
+          format: 'docx',
+        })
+      } catch (docxError) {
+        console.error('DOCX parse error:', docxError)
+        const errorMessage = docxError instanceof Error ? docxError.message : 'Unknown error'
+        if (errorMessage.includes('body element') || errorMessage.includes('Could not find')) {
+          return NextResponse.json(
+            { error: 'Could not parse this file. If it\'s a .doc file (old Word format), please save it as .docx or paste the text directly.' },
+            { status: 400 }
+          )
+        }
+        return NextResponse.json(
+          { error: `Failed to parse DOCX: ${errorMessage}` },
+          { status: 500 }
+        )
+      }
     }
 
     // For text files
