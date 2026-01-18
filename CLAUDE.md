@@ -177,7 +177,13 @@ npx tsc --noEmit # Type check without building (run before commits!)
 
 ### UI Improvements
 - **Home page logo**: Added Course Architect logo to home page header
-- **Competency page**: Moved "Why define a core competency?" help section to top of page for better discoverability
+- **Competency page redesign**:
+  - Replaced collapsible FAQ with always-visible orientation card (question mark icon + inline text)
+  - Course Information now uses compact inline chips (Code, Discipline, Level, Credits)
+  - Core Competency statement is directly editable (no Edit button needed)
+  - Competency Type uses inline chip style matching Course Info
+  - Added Credits field to Course Information
+  - Distinct background colors: slate-100 for Course Info, primary-50 for Core Competency
 
 ### Bug Fixes
 - **DOCX parsing**: Fixed server-side parsing to use `Buffer` instead of `ArrayBuffer` (mammoth requirement in Node.js)
