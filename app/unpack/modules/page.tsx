@@ -946,7 +946,7 @@ export default function UnpackStep3() {
                     })}
                   </div>
                 ) : nodes.size >= 2 ? (
-                  <p className="text-sm text-gray-400 italic py-2">No relationships yet. Click "Add Relationship" to create one.</p>
+                  <p className="text-sm text-gray-400 italic py-2">No relationships yet. Click &quot;Add Relationship&quot; to create one.</p>
                 ) : nodes.size > 0 ? (
                   <p className="text-sm text-gray-400 italic py-2">Add at least 2 concepts to create relationships.</p>
                 ) : null}

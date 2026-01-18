@@ -1,14 +1,23 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
-import { resetAllStores } from '@/lib/reset-stores'
+import { resetAllStores, resetAssessStores } from '@/lib/reset-stores'
+import { useUIStore } from '@/stores'
 
 export default function HomePage() {
   const router = useRouter()
+  const { setCurrentMode } = useUIStore()
 
   const handleUnpackClick = () => {
     resetAllStores()
+    setCurrentMode('unpack')
     router.push('/unpack')
+  }
+
+  const handleAssessClick = () => {
+    resetAssessStores()
+    setCurrentMode('assess')
+    router.push('/assess')
   }
   return (
     <div className="min-h-screen flex flex-col">
@@ -72,21 +81,16 @@ export default function HomePage() {
             </button>
 
             {/* Assess Mode */}
-            <div className="group cursor-not-allowed">
-              <div className="h-full border border-gray-200 rounded-xl p-6 bg-white opacity-60">
+            <button onClick={handleAssessClick} className="group text-left">
+              <div className="h-full border border-gray-200 rounded-xl p-6 bg-white hover:border-accent-500 hover:shadow-md transition-all">
                 <div className="w-12 h-12 rounded-lg bg-accent-100 flex items-center justify-center mb-4">
                   <svg className="w-6 h-6 text-accent-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
                   </svg>
                 </div>
-                <div className="flex items-center gap-2 mb-2">
-                  <h3 className="text-xl font-semibold text-gray-900">
-                    Assess
-                  </h3>
-                  <span className="text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded">
-                    Coming Soon
-                  </span>
-                </div>
+                <h3 className="text-xl font-semibold text-gray-900 mb-2 group-hover:text-accent-600 transition-colors">
+                  Assess
+                </h3>
                 <p className="text-gray-600 mb-4">
                   Audit your assessments for AI vulnerability and generate authentic alternatives.
                 </p>
@@ -96,7 +100,7 @@ export default function HomePage() {
                   <li>Create rubrics for authentic work</li>
                 </ul>
               </div>
-            </div>
+            </button>
           </div>
 
           {/* Philosophy note */}

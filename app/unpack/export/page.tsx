@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useMemo, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Card, CardContent, Button, Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui'
 import { StepNavigation } from '@/components/layout'
 import { KnowledgeGraphViewer } from '@/components/knowledge-graph/KnowledgeGraphViewer'
@@ -11,6 +12,7 @@ import {
   useContextStore,
   useUIStore,
 } from '@/stores'
+import { resetAssessStores } from '@/lib/reset-stores'
 import type { Module, KnowledgeNode, KnowledgeEdge, NodeType } from '@/types/schema'
 
 // Inline SVG icons
@@ -225,8 +227,15 @@ function EdgeDisplay({ edge, nodes }: { edge: KnowledgeEdge; nodes: Map<string, 
 }
 
 export default function UnpackStep6() {
+  const router = useRouter()
   const [copied, setCopied] = useState(false)
-  const { exportViewMode, setExportViewMode, setCurrentStep } = useUIStore()
+  const { exportViewMode, setExportViewMode, setCurrentStep, setCurrentMode } = useUIStore()
+
+  const handleContinueToAssess = () => {
+    resetAssessStores()
+    setCurrentMode('assess')
+    router.push('/assess')
+  }
 
   // Section expansion state
   const [expandedSections, setExpandedSections] = useState({
@@ -828,6 +837,40 @@ export default function UnpackStep6() {
         showNext={false}
         backLabel="Back to Context"
       />
+
+      {/* Continue to Assess Mode */}
+      <Card variant="bordered" className="mt-6 bg-accent-50 border-accent-200">
+        <CardContent>
+          <div className="flex items-center justify-between">
+            <div>
+              <h3 className="font-semibold text-gray-900">Ready to audit your assessments?</h3>
+              <p className="text-sm text-gray-600 mt-1">
+                Continue to Assess mode to analyze your assessments for AI vulnerability and generate authentic alternatives.
+              </p>
+            </div>
+            <Button
+              variant="primary"
+              onClick={handleContinueToAssess}
+              className="whitespace-nowrap bg-accent-600 hover:bg-accent-700"
+            >
+              Continue to Assess
+              <svg
+                className="w-4 h-4 ml-2"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M14 5l7 7m0 0l-7 7m7-7H3"
+                />
+              </svg>
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

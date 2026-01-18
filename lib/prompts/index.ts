@@ -27,3 +27,23 @@ export {
   PREREQUISITES_SUGGESTION_SYSTEM_PROMPT,
   PREREQUISITES_SUGGESTION_USER_PROMPT,
 } from './prerequisites-suggestion'
+
+export {
+  ASSESSMENT_EXTRACTION_SYSTEM_PROMPT,
+  ASSESSMENT_EXTRACTION_USER_PROMPT,
+} from './assessment-extraction'
+
+export {
+  VULNERABILITY_AUDIT_SYSTEM_PROMPT,
+  VULNERABILITY_AUDIT_USER_PROMPT,
+} from './vulnerability-audit'
+
+export {
+  ALTERNATIVE_GENERATION_SYSTEM_PROMPT,
+  ALTERNATIVE_GENERATION_USER_PROMPT,
+} from './alternative-generation'
+
+export {
+  RUBRIC_GENERATION_SYSTEM_PROMPT,
+  RUBRIC_GENERATION_USER_PROMPT,
+} from './rubric-generation'

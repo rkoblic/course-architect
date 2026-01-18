@@ -3,6 +3,8 @@ import { useModuleStore } from '@/stores/module-store'
 import { useKnowledgeGraphStore } from '@/stores/knowledge-graph-store'
 import { useContextStore } from '@/stores/context-store'
 import { useUIStore } from '@/stores/ui-store'
+import { useAssessmentStore } from '@/stores/assessment-store'
+import { useRubricStore } from '@/stores/rubric-store'
 
 /**
  * Resets all Zustand stores to their initial state.
@@ -14,4 +16,16 @@ export function resetAllStores() {
   useKnowledgeGraphStore.getState().reset()
   useContextStore.getState().reset()
   useUIStore.getState().resetAll()
+  useAssessmentStore.getState().reset()
+  useRubricStore.getState().reset()
+}
+
+/**
+ * Resets only the Assess mode stores.
+ * Call this when starting a fresh Assess session while preserving Unpack data.
+ */
+export function resetAssessStores() {
+  useAssessmentStore.getState().reset()
+  useRubricStore.getState().reset()
+  useUIStore.getState().resetAssessUI()
 }

@@ -7,7 +7,7 @@ This file provides context for Claude Code when working on this project.
 Course Architect is a Next.js web app that helps higher education faculty transform syllabi into AI-ready curriculum structures. It has two modes:
 
 1. **Unpack Mode** (functional): Transform syllabi into structured, machine-readable formats
-2. **Assess Mode** (not started): Audit assessments for AI vulnerability and generate alternatives
+2. **Assess Mode** (functional): Audit assessments for AI vulnerability and generate alternatives
 
 ## Tech Stack
 
@@ -25,41 +25,66 @@ app/
   page.tsx              # Home page with mode selection
   layout.tsx            # Root layout
   globals.css           # Tailwind + CSS variables
-  unpack/               # Unpack mode pages
+  unpack/               # Unpack mode pages (6 steps)
     page.tsx            # Step 1: Upload & extract
     competency/         # Step 2: Core competency
     modules/            # Step 3: Edit modules
     prerequisites/      # Step 4: Map prerequisites (with AI suggestions)
     context/            # Step 5: AI policy & context
     export/             # Step 6: Review & export JSON
+  assess/               # Assess mode pages (5 steps)
+    layout.tsx          # Assess layout with stepper
+    page.tsx            # Step 1: Assessment Inventory
+    audit/              # Step 2: Vulnerability Audit
+    alternatives/       # Step 3: Alternative Generator
+    rubrics/            # Step 4: Rubric Builder
+    export/             # Step 5: Review & Export
   api/
     parse/              # File parsing endpoint
     extract/
       metadata/         # Course metadata extraction
       modules/          # Module extraction
+      assessments/      # Assessment extraction from syllabus
       knowledge-graph/  # Knowledge graph extraction (legacy single-call)
         nodes/          # Node extraction (step 1 of split extraction)
         edges/          # Edge extraction (step 2, uses node IDs)
     suggest/
       prerequisites/    # AI prerequisite suggestions
+    assess/
+      vulnerability-audit/    # AI vulnerability analysis
+      generate-alternatives/  # AI alternative generation
+      generate-rubric/        # AI rubric generation
 
 components/
   ui/                   # Base UI components (Card, Tabs, Button, etc.)
-  layout/               # Layout components (StepNavigation, Header, Stepper)
+  layout/               # Layout components (StepNavigation, Header, Stepper, AssessStepper)
   upload/               # Upload components (FileDropzone, PasteInput, ExtractionProgress)
+  assess/               # Assess mode components
+    AssessmentCard.tsx  # Assessment display card
+    AssessmentForm.tsx  # Assessment CRUD form
+    VulnerabilityBadge.tsx  # Risk level badge + detail view
+    AlternativeCard.tsx # Alternative assessment card
+    RubricEditor.tsx    # Rubric criteria/levels editor
 
 stores/
   course-store.ts       # Course metadata & core competency
   module-store.ts       # Learning modules (array)
   knowledge-graph-store.ts  # Nodes & edges (Maps, not arrays!)
   context-store.ts      # AI policy, learner profile, prerequisites
-  ui-store.ts           # UI state, extraction progress, step tracking
+  ui-store.ts           # UI state, extraction progress, step tracking (both modes)
+  assessment-store.ts   # Assessments, vulnerability audits, alternatives (Maps)
+  rubric-store.ts       # Rubrics with criteria and levels (Maps)
 
 lib/
   anthropic.ts          # Claude API client
   parsers/              # DOCX parser (PDF disabled)
   prompts/              # AI extraction prompts
+    vulnerability-audit.ts      # Vulnerability analysis prompt
+    alternative-generation.ts   # Alternative generation prompt
+    rubric-generation.ts        # Rubric generation prompt
+    assessment-extraction.ts    # Assessment extraction prompt
   utils.ts              # Utility functions (cn for classnames)
+  reset-stores.ts       # Store reset functions (resetUnpackStores, resetAssessStores)
 
 types/
   schema.ts             # TypeScript types matching schema-v0.4.json
@@ -105,6 +130,57 @@ edges: Map<string, KnowledgeEdge>  // Use .size not .length
 // To convert to array for JSON export:
 Array.from(nodes.values())
 Array.from(edges.values())
+```
+
+### Assessment Store (stores/assessment-store.ts)
+**IMPORTANT**: Uses Maps, not arrays!
+```typescript
+assessments: Map<string, Assessment>
+alternatives: Map<string, AlternativeAssessment[]>  // keyed by assessment ID
+selectedAssessmentId: string | null
+
+// Vulnerability audit is stored on the Assessment object:
+interface Assessment {
+  id: string
+  name: string
+  type: AssessmentType
+  weight?: number
+  vulnerability_audit?: VulnerabilityAudit  // 5-dimension analysis
+  // ...
+}
+```
+
+### Rubric Store (stores/rubric-store.ts)
+**IMPORTANT**: Uses Maps, not arrays!
+```typescript
+rubrics: Map<string, Rubric>
+
+interface Rubric {
+  id: string
+  assessment_id: string
+  criteria: RubricCriterion[]  // Array of criteria
+}
+
+interface RubricCriterion {
+  name: string
+  weight: number
+  category?: RubricCategory  // AI-era categories
+  levels: RubricLevel[]      // Performance levels (Exemplary, Proficient, etc.)
+}
+```
+
+### UI Store Assess Mode State (stores/ui-store.ts)
+```typescript
+type AssessStep = 1 | 2 | 3 | 4 | 5
+type AppMode = 'unpack' | 'assess'
+
+// Assess-specific state:
+currentMode: AppMode
+assessCurrentStep: AssessStep
+assessStepsCompleted: Record<AssessStep, boolean>
+
+// Constants:
+ASSESS_STEP_LABELS: Record<AssessStep, { title: string; description: string }>
 ```
 
 ### StepNavigation Props (components/layout/step-navigation.tsx)
@@ -160,17 +236,78 @@ npx tsc --noEmit # Type check without building (run before commits!)
 5. **Context** (`/unpack/context`): Set AI policy and learner profile
 6. **Export** (`/unpack/export`): Review and download JSON
 
+## Assess Flow (5 Steps)
+
+1. **Inventory** (`/assess`): Catalog existing assessments (manual entry or extract from syllabus)
+2. **Audit** (`/assess/audit`): AI vulnerability analysis across 5 dimensions:
+   - Reproducibility: Could AI generate a plausible response?
+   - Verification: Can you verify student did the work?
+   - Uniqueness: Does it require student-specific input?
+   - Temporal: Are time constraints effective?
+   - Embodied: Does it require physical presence?
+3. **Alternatives** (`/assess/alternatives`): Generate authentic alternatives using 4 principles:
+   - Requires what AI lacks (lived experience, relationships, embodied knowledge)
+   - Makes process visible (iterative drafts, oral defense, metacognition)
+   - Leverages AI as tool (AI collaboration is part of task)
+   - Anchors to specifics (local context, current events, peer interaction)
+4. **Rubrics** (`/assess/rubrics`): Build AI-era rubrics with 6 categories:
+   - content_mastery, process_quality, metacognition
+   - ai_collaboration, authentic_voice, contextual_application
+5. **Export** (`/assess/export`): Review and download assessment package JSON
+
+### Entry Points to Assess Mode
+- **Continue from Unpack**: Button on export page preserves all course data
+- **Start Fresh**: Home page Assess card for manual entry
+- **Import JSON**: Upload previous Unpack export (future)
+
 ## Current State
 
 - Home page with Unpack/Assess mode selection complete (with logo)
 - Full Unpack flow implemented (all 6 steps)
+- Full Assess flow implemented (all 5 steps)
 - AI extraction pipeline for metadata, modules, and knowledge graph
 - AI suggestions for prerequisites (auto-triggered on step 4)
-- Export page with JSON download and interactive knowledge graph visualization
+- AI vulnerability audit, alternative generation, and rubric generation
+- Export pages with JSON download and interactive knowledge graph visualization
 - DOCX parsing via server-side API (PDF temporarily disabled)
-- Assess mode not started (shows "Coming Soon")
 
 ## Recent Changes (January 2026)
+
+### Assess Mode Implementation (Full 5-Step Flow)
+Complete implementation of Assess mode for auditing assessments and generating AI-resistant alternatives.
+
+**New Stores:**
+- `assessment-store.ts`: Assessments, vulnerability audits, alternatives (Map-based with custom serialization)
+- `rubric-store.ts`: Rubrics with criteria and levels (Map-based)
+- Extended `ui-store.ts` with `AssessStep`, `AppMode`, assess navigation state
+
+**New Pages:**
+- `/assess`: Assessment Inventory (CRUD, extraction from syllabus)
+- `/assess/audit`: Vulnerability Audit (5-dimension analysis with visual badges)
+- `/assess/alternatives`: Alternative Generator (accept/customize alternatives)
+- `/assess/rubrics`: Rubric Builder (AI-era rubrics with 6 categories)
+- `/assess/export`: Review & Export (summary stats, JSON download)
+
+**New API Endpoints:**
+- `POST /api/extract/assessments`: Extract assessments from syllabus text
+- `POST /api/assess/vulnerability-audit`: Analyze AI vulnerability across 5 dimensions
+- `POST /api/assess/generate-alternatives`: Generate 2-3 authentic alternatives
+- `POST /api/assess/generate-rubric`: Generate rubric with AI-era categories
+
+**New Components:**
+- `AssessmentCard`: Display card with type/weight badges, edit/delete actions
+- `AssessmentForm`: CRUD form with format details and AI policy
+- `VulnerabilityBadge`: Risk level badge and detailed 5-dimension breakdown
+- `AlternativeCard`: Alternative display with accept/customize actions
+- `RubricEditor`: Collapsible criterion editors with level tables
+
+**New Layout Components:**
+- `AssessStepper`: 5-step stepper with accent color scheme
+- `AssessStepNavigation`: Step navigation with completion tracking
+
+**Entry Points:**
+- "Continue to Assess" button on Unpack export page
+- Enabled Assess card on home page
 
 ### Split Knowledge Graph Extraction (Two-Step API)
 - **Node extraction first**: New `/api/extract/knowledge-graph/nodes` endpoint extracts concepts, skills, threshold concepts, and misconceptions with full 8192 token budget
